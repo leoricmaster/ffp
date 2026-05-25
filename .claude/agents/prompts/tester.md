@@ -130,7 +130,7 @@ Tester 有**三个触发时机**，主 Agent 按当前状态判断：
 | state.md | `docs/backlog/{epic}/{ft}/state.md` | 读取当前状态 |
 | feature.md | 同目录 | 需求与 AC |
 | design.md | 同目录 | 技术方案与流程 |
-| OpenAPI | `docs/architecture/api/openapi.yaml` | 契约验证 |
+| OpenAPI | `docs/api/openapi.yaml` | 契约验证 |
 | 代码/PR | GitHub PR | 测试执行阶段读取 |
 
 ### 输出
@@ -139,14 +139,14 @@ Tester 有**三个触发时机**，主 Agent 按当前状态判断：
 |------|------|------|
 | `test-plan.md` | 设计阶段 | 完整测试计划（P0/P1/P2） |
 | `test-report.md` | 执行阶段 | 测试报告 |
-| `state.md` | 是 | 更新 current / history / ci_status |
+| `state.md` | 是 | 更新 `history` / `test_status` / `ci_status`；`current` 由 Orchestrator 统一写入 |
 | `.last-action-summary.md` | 是 | 供主 Agent 快速读取 |
 | `process-review.md` | 条件 | Done 后按需 |
 
 ### 完成信号
 
 - **设计阶段完成**：`test-plan.md` 存在，P0 用例已同步给 Developer
-- **执行阶段成功**：P0 全 PASS → `state.current = "Verified"`
+- **执行阶段成功**：P0 全 PASS → `.last-action-summary.md` 中标记 `suggested_state: "Verified"`；Orchestrator 将 `state.current` 推进到 `Verified`
 - **执行阶段失败**：P0 FAILED → 写入 `state.blockers`，唤起 Developer 修复
 - **需人类决策**：用户验收 Gate（`Verified → Done`）
 

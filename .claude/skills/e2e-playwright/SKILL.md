@@ -11,7 +11,7 @@ human_doc: docs/architecture/quality-pipeline.md#l3-e2e
 
 # Playwright E2E 测试设计
 
-> Wave 5-5 起从旧 `.claude/agents/prompts/integration-tester-e2e-guide.md` 迁入此 Skill。Tester 写 E2E 用例、前端 Developer 加 data-testid 时按需加载。
+> Wave 5-5 起作为独立 Skill。Tester 写 E2E 用例、前端 Developer 加 data-testid 时按需加载。
 
 ---
 

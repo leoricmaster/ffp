@@ -22,8 +22,8 @@ human_doc: docs/process/common.md#developer
 |------|------|
 | **上游** | Designer（feature.md + design.md，已审批通过）+ Reviewer（架构评审结论） |
 | **下游** | Reviewer（PR review）+ Tester（测试执行） |
-| **触发** | `state.current === Designed` |
-| **结束** | 代码 push + 单测绿 + 自检过 + PR CI 全绿 → `state.current → Testing` |
+| **触发** | 被 Orchestrator 在 `Designed` 状态唤起；唤起时 Orchestrator 已将 state 改为 `Implementing` |
+| **结束** | 代码 push + 单测绿 + 自检过 + PR CI 全绿；Orchestrator 将 state 推进到 `Testing` |
 
 ## 工作流程
 
@@ -86,7 +86,7 @@ PR push 后：
 
 ```yaml
 history:
-  - YYYY-MM-DD: Designed → Implementing
+  - YYYY-MM-DD: Designed → Implementing - 开始编码
   - YYYY-MM-DD: Implementing → Testing - 代码 push 完成，PR #N 已开
 ci_status:
   pr_checks: PASS
@@ -131,12 +131,12 @@ state.md 已更新：current: Testing。
 ## 结束条件
 
 1. design.md 所有任务已实现
-2. 单元测试覆盖关键逻辑 > 70% 且全绿
+2. 单元测试覆盖关键逻辑，本地覆盖率 ≥ 60%（追求 ≥ 80%，详见 `engineering` Skill）且全绿
 3. lint / format / typecheck 本地通过
 4. PR 已开并 ping Reviewer + Tester
 5. Tester 编写的新测试用例（E2E / Contract / Integration）已加入 CI 并可运行
 6. **PR CI 全绿**（`gh pr checks <N>` 或 `gh run list --branch <branch>`）
-7. `state.md current: Testing`，`ci_status.pr_checks: PASS`
+7. `ci_status.pr_checks: PASS`（由 Developer 更新）；Orchestrator 将 `state.current` 推进到 `Testing`
 
 ## 编排接口（供主 Agent 使用）
 
@@ -165,12 +165,12 @@ state.md 已更新：current: Testing。
 | 代码文件 | 是 | 按 design.md 实现 |
 | 单元测试 | 是 | L1 测试 |
 | PR | 是 | GitHub PR |
-| `state.md` | 是 | 更新 current → Testing，记录 history |
+| `state.md` | 是 | 更新 `ci_status` / `history`；`current` 由 Orchestrator 统一写入 |
 | `.last-action-summary.md` | 是 | 供主 Agent 快速读取 |
 
 ### 完成信号
 
-- **成功**：`state.current = "Testing"`，`ci_status.pr_checks = "PASS"`
+- **成功**：`.last-action-summary.md` 中标记 `suggested_state: "Testing"`；`ci_status.pr_checks = "PASS"`（Developer 更新 state.md）
 - **需人类决策**：`.last-action-summary.md` 中标记 `needs_human_gate: true`（PR CI 红时需人工判断）
 - **失败**：写入 `state.blockers`，主 Agent escalate 给用户
 

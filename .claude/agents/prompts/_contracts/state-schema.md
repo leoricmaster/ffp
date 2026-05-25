@@ -77,6 +77,7 @@ test_status:
 | 转换 | 必须更新字段 |
 |------|-------------|
 | 任意状态变更 | `current`, `history`（追加） |
+| Designed → Implementing | `current`, `history`（追加） |
 | 发现阻塞 | `blockers`（追加） |
 | 阻塞解除 | `blockers`（移除对应项） |
 | PR 开启 | `ci_status.pr_checks: PENDING` |

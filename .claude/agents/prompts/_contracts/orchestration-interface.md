@@ -39,7 +39,7 @@ description: 各 Agent Prompt 中"编排接口"章节的标准模板，确保主
 
 ### 完成信号
 
-- **成功**：`state.current` 更新为 `"XXX"`，`.last-action-summary.md` 中 `status: success`
+- **成功**：`.last-action-summary.md` 中 `status: success`，标记 `suggested_state: "XXX"`；Orchestrator 校验后统一更新 `state.current`
 - **失败**：`.last-action-summary.md` 中 `status: failed`，原因写入 `blockers`
 - **需人类决策**：`.last-action-summary.md` 中 `needs_human_gate: true`，`pending_reviews` 追加对应项
 

@@ -164,6 +164,7 @@ stateDiagram-v2
 
 - **小修**（字段增减、接口参数调整、局部逻辑变更）：Reviewer 直接批准，Developer 更新 `design.md` 版本号后继续编码
 - **大修**（跨越系统边界、数据模型变更、新增外部依赖）：转**设计方案审批 Gate**，通过后回到 `Implementing`
+- **修正次数上限**：同一 feature 累计触发设计修正 ≥ 3 次时，Orchestrator 停止自动推进，escalate 给用户评估是否需要回退到 `Draft` 重新设计
 
 ## 1.3 用户 Gate
 

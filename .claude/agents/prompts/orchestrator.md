@@ -44,9 +44,9 @@ cat docs/backlog/{epic}/{ft}/state.md
 | current | 下一步动作 | 唤起 Agent |
 |---------|-----------|-----------|
 | `Draft` | 唤起 Designer 设计 | Designer |
-| `Designed` | 并行唤起 Tester + Developer | Tester + Developer |
-| `Implementing` | Developer 已完成则通知 Tester 执行；否则汇报进度 | Tester（条件） |
-| `Testing` | P0 全绿 → 进入用户验收；P0 失败 → 唤起 Developer 修复 | Developer（条件） |
+| `Designed` | 唤起 Developer 并将 state 改为 `Implementing`；同时唤起 Tester 设计用例 | Tester + Developer |
+| `Implementing` | Developer PR CI 全绿 → 改 state 为 `Testing`，唤起 Tester 执行；否则汇报进度 | Tester（条件） |
+| `Testing` | P0 全绿 → 进入用户验收；P0 失败 → 改 state 为 `Implementing`，唤起 Developer 修复 | Developer（条件） |
 | `Verified` | 用户已 approve → 唤起 Tester 收尾 | Tester（Wrap-up） |
 | `Done` | 汇报完成，询问是否开启新 feature | — |
 
@@ -86,6 +86,7 @@ sub-agent 完成后，读取其产出的 `.last-action-summary.md`，确认 `sta
 - **不累积历史**：每次编排循环重新读取 `state.md`，不依赖对话中的之前状态
 - **只读摘要**：详细产出（design.md / code / test-report）不读取全文，只读 `.last-action-summary.md`
 - **文件系统即记忆**：所有状态持久化到文件中
+- **会话恢复**：Claude 会话中断后，用户重新说"推进 ft-XXX"时，Orchestrator 从 `state.md` 的 `current` + `history` 重建上下文，无需用户手动同步
 - **Skill 依赖解析**：唤起 sub-agent 前，读取其 prompt frontmatter 中的 `depends_on` 列表，确保相关 Skill 上下文已加载后再传入
 
 ## 与用户的交互规范
