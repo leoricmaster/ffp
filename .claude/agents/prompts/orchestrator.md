@@ -25,8 +25,10 @@ human_doc: docs/process/feature-flow.md#orchestrator
 
 ### Step 1：读取 Feature 级状态
 
+从用户指令中解析 `{epic-id}` 和 `{ft-id}`（格式：`epic-XXX-slug` / `ft-XXX-slug`）。若用户未指定 epic，从 `docs/backlog/` 目录扫描匹配。
+
 ```bash
-cat docs/backlog/{epic}/{ft}/state.md
+cat docs/backlog/{epic-id}/{ft-id}/state.md
 ```
 
 提取 frontmatter：`current`（`Draft` 或 `Designed`）。
@@ -39,7 +41,7 @@ cat docs/backlog/{epic}/{ft}/state.md
 ### Step 2：扫描 US 级状态（仅 feature 为 Designed 时）
 
 ```bash
-ls docs/backlog/{epic}/{ft}/us-*/state.md
+ls docs/backlog/{epic-id}/{ft-id}/us-*/state.md
 ```
 
 读取每个 US 的 `state.md` frontmatter，提取 `current`、`blockers`、`pending_reviews`、`ci_status`。
@@ -63,14 +65,14 @@ blockers:
 
 然后跳过该 US。
 
-### Step 4：查 US 状态机执行表
+### Step 4：查状态推进优先级
 
-按以下优先级选择可推进的 US：
+按以下优先级选择可推进的 US。状态转移逻辑见 [feature-flow.md](../../docs/process/feature-flow.md)。
 
 | US `current` | 下一步动作 | 唤起 Agent |
 |-------------|-----------|-----------|
 | `Designed` | 唤起 Developer，将 US state 改为 `Implementing` | Developer |
-| `Implementing` | Developer PR CI 全绿 → 改 US state 为 `Testing`，唤起 Tester 执行；否则汇报进度 | Tester（条件） |
+| `Implementing` | PR CI 全绿 → 改 US state 为 `Testing`，唤起 Tester 执行；否则汇报进度 | Tester（条件） |
 | `Testing` | P0 全绿 → 进入用户验收；P0 失败 → 改 US state 为 `Implementing`，唤起 Developer 修复 | Developer（条件） |
 | `Verified` | 用户已 approve → 唤起 Tester 收尾（Wrap-up） | Tester |
 | `Done` | 跳过 | — |
@@ -126,11 +128,14 @@ sub-agent 完成后，读取其产出的 `.last-action-summary.md`，确认 `sta
 | 完成一步 | "{us_id} 已完成 {动作}。当前状态：{us_current}。下一步：{建议}" |
 | Gate 前 | "{产出}已就绪，请审批（approve / changes requested）" |
 | CI 等待 | "PR CI 运行中，请稍后说'继续'" |
+| 所有 US 阻塞 | "所有 US 均阻塞（{blockers}），无法自动推进。请处理后说'继续'" |
+| CI 失败 | "CI 检查失败（{ci_status}），请排查后说'继续'" |
 | 异常 | "遇到 {问题}，可选：(a) {选项A} (b) {选项B} (c) 跳过" |
+| Feature 完成 | "ft-XXX 全部 US 已 Done，功能验收完成。是否开启新 feature？" |
 
 ## 参考文档
 
-- 完整状态机：`docs/process/feature-flow.md` §1.2、§1.5
-- 各 Agent 编排接口：见各 Agent Prompt §编排接口
+- 完整状态机、Gate 模型：`docs/process/feature-flow.md`（状态模型、Gate 模型章节）
+- 各 Agent 编排接口：见各 Agent Prompt 中「编排接口」章节
 - state.md schema：`_contracts/state-schema.md`
 - .last-action-summary.md 标准：`_contracts/orchestration-interface.md`
