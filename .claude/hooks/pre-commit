@@ -1,0 +1,52 @@
+#!/usr/bin/env sh
+# Branch contention guard
+#
+# 背景：当 agent session 在某个 PR 分支上工作时，如果用户在 IDE 里切到别的
+# 分支并 commit，agent 后续的 commit 会落到错误的分支。
+#
+# 协议：agent 在开始一个 PR-scoped 任务时写入 .git/claude-agent-branch（值为
+# 期望分支名）；本 hook 在 commit 前校验 HEAD 与锁值一致，不一致则阻断。
+#
+# 锁文件在 .git/ 下不会被追踪，也不会污染 working tree；被 `git clean` 保留。
+# 锁被遗忘时直接 `rm .git/claude-agent-branch` 即可解除。
+
+LOCK=".git/claude-agent-branch"
+
+if [ -f "$LOCK" ]; then
+  EXPECTED=$(head -n1 "$LOCK" 2>/dev/null | tr -d '[:space:]')
+  CURRENT=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+
+  if [ -n "$EXPECTED" ] && [ "$CURRENT" != "$EXPECTED" ]; then
+    cat >&2 <<EOF
+❌ Branch contention detected (Wave 5-12 guard)
+
+  Agent expected:  $EXPECTED
+  Current branch:  $CURRENT
+  Lock file:       $LOCK
+
+解决方式（选一）：
+
+  1. 切回期望分支：
+     git checkout $EXPECTED
+
+  2. 若 agent session 已结束、锁是旧的：
+     rm $LOCK
+
+  3. 若确实要在 $CURRENT 上 commit：
+     rm $LOCK && git commit ...
+
+详见 .claude/agents/prompts/_common.md §分支锁协议。
+EOF
+    exit 1
+  fi
+fi
+
+# Auto-fix markdown lint issues on staged .md files
+# Silently skip if markdownlint-cli2 is not installed or no .md files are staged
+STAGED_MD=$(git diff --cached --name-only --diff-filter=ACM 2>/dev/null | grep '\.md$' || true)
+if [ -n "$STAGED_MD" ] && command -v npx >/dev/null 2>&1; then
+  echo "$STAGED_MD" | tr '\n' '\0' | xargs -0 npx markdownlint-cli2 --fix 2>/dev/null || true
+  echo "$STAGED_MD" | tr '\n' '\0' | xargs -0 git add 2>/dev/null || true
+fi
+
+exit 0

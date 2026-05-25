@@ -1,0 +1,2411 @@
+openapi: 3.0.3
+info:
+  title: API 规范（草案 - 待重新设计）
+  description: |
+    ⚠️ **注意：本文档是基于历史产品的 API 草案，供参考使用。**
+
+    历史实现已剥离，实现阶段应重新设计 API 契约。
+    禁止直接复用旧端点路径、请求/响应结构和校验规则。
+  version: 0.0.0
+  contact:
+    name: Development Team
+    email: dev@example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://127.0.0.1:4010
+    description: 本地模拟服务器 (Mock - Prism) - 注意：Prism 使用路径中的完整 URL
+    x-environment: mock
+  - url: http://localhost:8080
+    description: 本地开发环境 (Dev Backend)
+    x-environment: dev
+  - url: https://prod.ffp-api.com
+    description: 生产环境 (Production)
+    x-environment: prod
+
+tags:
+  - name: Authentication
+    description: User authentication and authorization related interfaces
+  - name: Family
+    description: Family creation and management related interfaces
+  - name: Transaction
+    description: Transaction records management (income/expense)
+  - name: Account
+    description: Account records management (asset/liability)
+  - name: System
+    description: System status and monitoring related interfaces
+
+paths:
+  /api/v1/auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: 用户注册
+      description: |
+        创建新用户账号，账户立即可用无需邮箱验证（MVP简化）
+
+        注意：注册时会自动为用户创建默认家庭（后台操作），家庭信息可通过
+        登录后的 /api/v1/users/me 接口获取
+      operationId: registerUser
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: 注册成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: 用户已存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: 用户登录
+      description: 验证用户凭证，创建用户会话
+      operationId: loginUser
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: 登录成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 用户凭证错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: 用户登出
+      description: 销毁用户会话，使令牌失效。refreshToken 从 httpOnly Cookie 中自动读取。
+      operationId: logoutUser
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 登出成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogoutResponse'
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 令牌无效或已过期
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/auth/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: 刷新令牌
+      description: 使用刷新令牌获取新的访问令牌。refreshToken 从 httpOnly Cookie 中自动读取。
+      operationId: refreshToken
+      security: []
+      responses:
+        '200':
+          description: 令牌刷新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshTokenResponse'
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 刷新令牌无效或已过期
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/families:
+    post:
+      tags:
+        - Family
+      summary: 创建家庭
+      description: 创建新家庭，设置家庭基本信息，分配家庭管理员权限
+      operationId: createFamily
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFamilyRequest'
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FamilyResponse'
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 未授权
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: 用户已加入家庭
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error:
+                  code: "ALREADY_IN_FAMILY"
+                  message: "您已加入家庭，MVP阶段不支持创建多个家庭"
+                  details: []
+
+  /api/v1/users/me:
+    get:
+      tags:
+        - Authentication
+      summary: 获取当前用户信息
+      description: 获取当前登录用户的详细信息,包括所属家庭信息
+      operationId: getCurrentUser
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrentUserResponse'
+        '401':
+          description: 未授权或令牌无效
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 权限不足
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/transactions:
+    get:
+      tags:
+        - Transaction
+      summary: 查询交易记录列表
+      description: |
+        查询交易记录列表，支持分页、筛选、排序功能
+
+        权限规则：
+        - 家庭成员只能查询自己的记录
+        - 家庭管理员可查询所有成员的记录
+
+        查询结果不包含已删除记录（deleted_at为空）
+      operationId: listTransactions
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: 页码，从1开始
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+            example: 1
+        - name: limit
+          in: query
+          description: 每页条数，最大100
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+            example: 20
+        - name: startDate
+          in: query
+          description: 开始日期（包含），格式YYYY-MM-DD
+          required: false
+          schema:
+            type: string
+            format: date
+            example: "2024-01-01"
+        - name: endDate
+          in: query
+          description: 结束日期（包含），格式YYYY-MM-DD
+          required: false
+          schema:
+            type: string
+            format: date
+            example: "2024-12-31"
+        - name: memberId
+          in: query
+          description: 成员ID筛选
+          required: false
+          schema:
+            type: string
+            format: uuid
+            example: "550e8400-e29b-41d4-a716-446655440000"
+        - name: categoryId
+          in: query
+          description: 分类ID筛选
+          required: false
+          schema:
+            type: string
+            format: uuid
+            example: "c47d1f5e-8a9b-4c3d-9e2f-1a2b3c4d5e6f"
+        - name: transactionType
+          in: query
+          description: 交易类型筛选
+          required: false
+          schema:
+            type: string
+            enum: [INCOME, EXPENSE]
+            example: "EXPENSE"
+        - name: sortBy
+          in: query
+          description: 排序字段
+          required: false
+          schema:
+            type: string
+            enum: [date, amount]
+            default: date
+            example: "date"
+        - name: order
+          in: query
+          description: 排序方向
+          required: false
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+            example: "desc"
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionListResponse'
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 未授权
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 无权访问
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+        - Transaction
+      summary: 创建交易记录
+      description: |
+        创建新的交易记录（收入或支出）
+
+        权限规则：
+        - 家庭管理员可为所有成员创建记录
+        - 家庭成员只能为自己创建记录
+
+        业务规则：
+        - 金额必须为正数
+        - 记录时间不能晚于当前时间
+        - 分类必须是当前家庭的有效分类
+      operationId: createTransaction
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTransactionRequest'
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionResponse'
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 未授权
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 无权操作
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/transactions/{id}:
+    get:
+      tags:
+        - Transaction
+      summary: 获取交易记录详情
+      description: 根据ID获取交易记录详情
+      operationId: getTransaction
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: 交易记录ID
+          required: true
+          schema:
+            type: integer
+            format: int64
+            example: 1
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionResponse'
+        '401':
+          description: 未授权
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 无权访问
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 记录不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags:
+        - Transaction
+      summary: 更新交易记录
+      description: |
+        更新交易记录信息
+
+        权限规则：
+        - 家庭管理员可修改所有成员的记录
+        - 家庭成员只能修改自己的记录
+
+        系统自动更新updated_at和updated_by字段
+      operationId: updateTransaction
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: 交易记录ID
+          required: true
+          schema:
+            type: integer
+            format: int64
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTransactionRequest'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionResponse'
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 未授权
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 无权修改
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 记录不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - Transaction
+      summary: 删除交易记录
+      description: |
+        软删除交易记录（设置deleted_at和deleted_by字段）
+
+        权限规则：
+        - 家庭管理员可删除所有成员的记录
+        - 家庭成员只能删除自己的记录
+
+        记录保留在数据库中用于审计，但不显示在列表和分析中
+      operationId: deleteTransaction
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: 交易记录ID
+          required: true
+          schema:
+            type: integer
+            format: int64
+            example: 1
+      responses:
+        '200':
+          description: 删除成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteResponse'
+        '401':
+          description: 未授权
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 无权删除
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 记录不存在或已删除
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/categories:
+    get:
+      tags:
+        - Category
+      summary: 获取分类列表
+      description: |
+        获取当前家庭的分类列表，支持按类型过滤
+
+        分类类型：
+        - INCOME: 收入分类
+        - EXPENSE: 支出分类
+      operationId: listCategories
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: type
+          in: query
+          description: 分类类型过滤
+          required: false
+          schema:
+            type: string
+            enum: [INCOME, EXPENSE]
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryListResponse'
+        '401':
+          description: 未授权
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 权限不足
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+        - Category
+      summary: 创建分类
+      description: |
+        创建新的收入或支出分类
+
+        业务规则：
+        - 分类名称在同级同类下不能重复
+        - 父分类必须存在且类型一致
+      operationId: createCategory
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCategoryRequest'
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryResponse'
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 未授权
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/categories/{id}:
+    put:
+      tags:
+        - Category
+      summary: 更新分类
+      description: |
+        更新分类信息
+
+        业务规则：
+        - 系统默认分类(system_default=true)不可修改
+        - 分类名称在同级同类下不能重复
+      operationId: updateCategory
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: 分类ID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCategoryRequest'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryResponse'
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 未授权
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 系统默认分类不可修改
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 分类不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - Category
+      summary: 删除分类
+      description: |
+        软删除分类
+
+        业务规则：
+        - 系统默认分类(system_default=true)不可删除
+        - 有子分类的一级分类不可删除
+      operationId: deleteCategory
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: 分类ID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 删除成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteResponse'
+        '400':
+          description: 请求参数错误（如有子分类）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 未授权
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 系统默认分类不可删除
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 分类不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/categories/reorder:
+    put:
+      tags:
+        - Category
+      summary: 批量更新分类排序
+      description: |
+        批量更新分类的排序顺序
+
+        排序规则：orderedIds 数组中的顺序即新的排序顺序
+      operationId: reorderCategories
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReorderCategoriesRequest'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 未授权
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/accounts:
+    get:
+      tags:
+        - Account
+      summary: 查询账户记录列表
+      description: |
+        查询账户记录列表（资产/负债），支持分页、筛选、排序功能
+
+        权限规则：
+        - 家庭成员只能查询自己的记录
+        - 家庭管理员可查询所有成员的记录
+
+        查询结果不包含已删除记录
+      operationId: listAccounts
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: 页码，从1开始
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+            example: 1
+        - name: limit
+          in: query
+          description: 每页条数，最大100
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+            example: 20
+        - name: startDate
+          in: query
+          description: 开始日期（包含），格式YYYY-MM-DD
+          required: false
+          schema:
+            type: string
+            format: date
+            example: "2024-01-01"
+        - name: endDate
+          in: query
+          description: 结束日期（包含），格式YYYY-MM-DD
+          required: false
+          schema:
+            type: string
+            format: date
+            example: "2024-12-31"
+        - name: memberId
+          in: query
+          description: 成员ID筛选
+          required: false
+          schema:
+            type: string
+            format: uuid
+            example: "550e8400-e29b-41d4-a716-446655440000"
+        - name: accountTypeId
+          in: query
+          description: 账户类型ID筛选
+          required: false
+          schema:
+            type: string
+            format: uuid
+            example: "a12b3456-789c-0def-1234-567890abcdef"
+        - name: accountCategory
+          in: query
+          description: 账户类别筛选
+          required: false
+          schema:
+            type: string
+            enum: [ASSET, LIABILITY]
+            example: "ASSET"
+        - name: sortBy
+          in: query
+          description: 排序字段
+          required: false
+          schema:
+            type: string
+            enum: [date, balance]
+            default: date
+            example: "date"
+        - name: order
+          in: query
+          description: 排序方向
+          required: false
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+            example: "desc"
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountListResponse'
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 未授权
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 无权访问
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+        - Account
+      summary: 创建账户记录
+      description: |
+        创建新的账户记录（资产或负债）
+
+        权限规则：
+        - 家庭管理员可为所有成员创建记录
+        - 家庭成员只能为自己创建记录
+
+        业务规则：
+        - 余额必须为正数
+        - 记录时间不能晚于当前时间
+        - 账户类型必须是当前家庭的有效类型
+      operationId: createAccount
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAccountRequest'
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountResponse'
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 未授权
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 无权操作
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/accounts/{id}:
+    get:
+      tags:
+        - Account
+      summary: 获取账户记录详情
+      description: 根据ID获取账户记录详情
+      operationId: getAccount
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: 账户记录ID
+          required: true
+          schema:
+            type: integer
+            format: int64
+            example: 1
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountResponse'
+        '401':
+          description: 未授权
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 无权访问
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 记录不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags:
+        - Account
+      summary: 更新账户记录
+      description: |
+        更新账户记录信息
+
+        权限规则：
+        - 家庭管理员可修改所有成员的记录
+        - 家庭成员只能修改自己的记录
+
+        系统自动更新updated_at和updated_by字段
+      operationId: updateAccount
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: 账户记录ID
+          required: true
+          schema:
+            type: integer
+            format: int64
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAccountRequest'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountResponse'
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 未授权
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 无权修改
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 记录不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - Account
+      summary: 删除账户记录
+      description: |
+        软删除账户记录（设置deleted_at和deleted_by字段）
+
+        权限规则：
+        - 家庭管理员可删除所有成员的记录
+        - 家庭成员只能删除自己的记录
+
+        记录保留在数据库中用于审计
+      operationId: deleteAccount
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: 账户记录ID
+          required: true
+          schema:
+            type: integer
+            format: int64
+            example: 1
+      responses:
+        '200':
+          description: 删除成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteResponse'
+        '401':
+          description: 未授权
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 无权删除
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 记录不存在或已删除
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+    schemas:
+      # 请求模型
+      RegisterRequest:
+        type: object
+        required:
+          - email
+          - password
+        properties:
+          username:
+            type: string
+            minLength: 3
+            maxLength: 20
+            pattern: '^[a-zA-Z0-9_]+$'
+            description: 用户名（可选，后端自动从邮箱前缀生成）
+            example: "zhangsan"
+            x-constraint-description: "3-20个字符，仅允许字母、数字和下划线，不提供时由后端自动生成"
+          email:
+            type: string
+            format: email
+            minLength: 5
+            maxLength: 100
+            description: 邮箱地址
+            example: "zhangsan@example.com"
+            x-constraint-description: "5-100个字符，必须符合邮箱格式"
+          password:
+            type: string
+            format: password
+            minLength: 8
+            maxLength: 128
+            description: 密码
+            example: "password123"
+            x-constraint-description: "8-128个字符"
+            x-security-level: high
+          phone:
+            type: string
+            pattern: '^1[3-9]\d{9}$'
+            minLength: 11
+            maxLength: 11
+            nullable: true
+            description: 手机号码（可选）
+            example: "13800138000"
+            x-constraint-description: "11位数字，中国大陆手机号格式"
+        example:
+          username: "zhangsan"
+          email: "zhangsan@example.com"
+          password: "Test@123456"
+          phone: "13800138000"
+
+      LoginRequest:
+        type: object
+        required:
+          - email
+          - password
+        properties:
+          email:
+            type: string
+            format: email
+            minLength: 5
+            maxLength: 100
+            description: 用户邮箱
+          password:
+            type: string
+            minLength: 8
+            maxLength: 128
+            description: 用户密码
+          rememberMe:
+            type: boolean
+            default: false
+            description: 是否记住登录状态
+
+      LogoutRequest:
+        type: object
+        required:
+          - refreshToken
+        properties:
+          refreshToken:
+            type: string
+            minLength: 20
+            description: 刷新令牌
+
+      RefreshTokenRequest:
+        type: object
+        required:
+          - refreshToken
+        properties:
+          refreshToken:
+            type: string
+            minLength: 20
+            description: 刷新令牌
+
+      CreateFamilyRequest:
+        type: object
+        required:
+          - name
+          - currency
+          - timezone
+          - language
+        properties:
+          name:
+            type: string
+            minLength: 1
+            maxLength: 50
+            description: 家庭名称
+            example: "张家"
+            x-constraint-description: "1-50个字符"
+          description:
+            type: string
+            maxLength: 200
+            nullable: true
+            description: 家庭描述（可选）
+            example: "幸福的一家人"
+          currency:
+            type: string
+            enum: [CNY, USD, EUR, GBP, JPY, HKD, TWD, SGD, AUD, CAD]
+            description: 家庭默认货币
+            example: "CNY"
+            x-constraint-description: "必须是支持的货币代码之一"
+          timezone:
+            type: string
+            pattern: '^[A-Za-z_]+/[A-Za-z_]+$'
+            description: 家庭时区（IANA时区格式）
+            example: "Asia/Shanghai"
+            x-constraint-description: "IANA时区格式，如 Asia/Shanghai"
+          language:
+            type: string
+            enum: [zh-CN, zh-TW, en-US, ja-JP, ko-KR]
+            description: 家庭默认语言
+            example: "zh-CN"
+            x-constraint-description: "必须是支持的语言代码之一"
+        example:
+          name: "张家"
+          description: "幸福的一家人"
+          currency: "CNY"
+          timezone: "Asia/Shanghai"
+          language: "zh-CN"
+
+      # 响应模型
+      AuthResponse:
+        type: object
+        required:
+          - success
+          - message
+          - data
+        properties:
+          success:
+            type: boolean
+            description: 操作是否成功
+            example: true
+          message:
+            type: string
+            minLength: 1
+            description: 响应消息
+            example: "注册成功"
+          data:
+            type: object
+            required:
+              - userId
+              - username
+              - email
+              - familyId
+            properties:
+              userId:
+                type: string
+                format: uuid
+                description: 用户ID
+                example: "550e8400-e29b-41d4-a716-446655440000"
+              username:
+                type: string
+                minLength: 3
+                maxLength: 20
+                pattern: '^[a-zA-Z0-9_]+$'
+                description: 用户名
+                example: "zhangsan"
+              email:
+                type: string
+                format: email
+                minLength: 5
+                maxLength: 100
+                description: 用户邮箱
+                example: "zhangsan@example.com"
+              familyId:
+                type: string
+                format: uuid
+                description: 注册时自动创建的默认家庭ID
+                example: "660f9500-e29b-41d4-a716-446655440001"
+
+      LoginResponse:
+        type: object
+        required:
+          - success
+          - message
+          - data
+        properties:
+          success:
+            type: boolean
+            description: 操作是否成功
+            example: true
+          message:
+            type: string
+            minLength: 1
+            description: 响应消息
+            example: "登录成功"
+          data:
+            type: object
+            required:
+              - user
+              - accessToken
+              - expiresIn
+            properties:
+              user:
+                $ref: '#/components/schemas/UserLoginInfo'
+              accessToken:
+                type: string
+                minLength: 20
+                description: 访问令牌(JWT格式,有效期1小时)
+                example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U"
+              expiresIn:
+                type: integer
+                minimum: 0
+                default: 3600
+                description: 访问令牌过期时间(秒),默认3600(1小时)
+                example: 3600
+              currentFamily:
+                allOf:
+                  - $ref: '#/components/schemas/CurrentFamilyInfo'
+                nullable: true
+                description: 用户当前所属家庭信息,如果用户未加入家庭则为null
+
+      LogoutResponse:
+        type: object
+        required:
+          - success
+          - message
+        properties:
+          success:
+            type: boolean
+            description: 操作是否成功
+            example: true
+          message:
+            type: string
+            minLength: 1
+            description: 响应消息
+            example: "登出成功"
+
+      RefreshTokenResponse:
+        type: object
+        required:
+          - success
+          - message
+          - data
+        properties:
+          success:
+            type: boolean
+            description: 操作是否成功
+            example: true
+          message:
+            type: string
+            minLength: 1
+            description: 响应消息
+            example: "令牌刷新成功"
+          data:
+            type: object
+            required:
+              - accessToken
+              - expiresIn
+            properties:
+              accessToken:
+                type: string
+                minLength: 20
+                description: 新的访问令牌
+                example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U"
+              expiresIn:
+                type: integer
+                minimum: 0
+                default: 3600
+                description: 访问令牌过期时间(秒),默认3600(1小时)
+                example: 3600
+
+      FamilyResponse:
+        type: object
+        required:
+          - success
+          - message
+          - data
+        properties:
+          success:
+            type: boolean
+            description: 操作是否成功
+            example: true
+          message:
+            type: string
+            minLength: 1
+            description: 响应消息
+            example: "家庭创建成功"
+          data:
+            type: object
+            required:
+              - familyId
+              - family
+            properties:
+              familyId:
+                type: string
+                format: uuid
+                description: 家庭ID
+                example: "550e8400-e29b-41d4-a716-446655440001"
+              family:
+                type: object
+                required:
+                  - id
+                  - name
+                  - currency
+                  - timezone
+                  - language
+                  - status
+                  - createdAt
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                    description: 家庭ID
+                    example: "550e8400-e29b-41d4-a716-446655440001"
+                  name:
+                    type: string
+                    minLength: 1
+                    maxLength: 50
+                    description: 家庭名称
+                    example: "张家"
+                  description:
+                    type: string
+                    maxLength: 200
+                    nullable: true
+                    description: 家庭描述
+                    example: "幸福的一家人"
+                  currency:
+                    type: string
+                    enum: [CNY, USD, EUR, GBP, JPY, HKD, TWD, SGD, AUD, CAD]
+                    description: 家庭默认货币
+                    example: "CNY"
+                  timezone:
+                    type: string
+                    pattern: '^[A-Za-z_]+/[A-Za-z_]+$'
+                    description: 家庭时区
+                    example: "Asia/Shanghai"
+                  language:
+                    type: string
+                    enum: [zh-CN, zh-TW, en-US, ja-JP, ko-KR]
+                    description: 家庭默认语言
+                    example: "zh-CN"
+                  status:
+                    type: string
+                    enum: [active, inactive]
+                    description: 家庭状态
+                    example: "active"
+                  memberCount:
+                    type: integer
+                    minimum: 1
+                    description: 家庭成员数量
+                    example: 1
+                  createdAt:
+                    type: string
+                    format: date-time
+                    description: 创建时间
+                    example: "2024-01-01T00:00:00Z"
+
+      # 交易记录请求模型
+      CreateTransactionRequest:
+        type: object
+        required:
+          - transactionDate
+          - amount
+          - categoryId
+          - transactionType
+        properties:
+          transactionDate:
+            type: string
+            format: date
+            description: 交易日期，不能晚于当前日期
+            example: "2024-01-15"
+            x-constraint-description: "格式YYYY-MM-DD，不能晚于当前日期"
+          amount:
+            type: number
+            format: decimal
+            minimum: 0.01
+            exclusiveMinimum: true
+            description: 交易金额（正数）
+            example: 100.50
+            x-constraint-description: "必须为正数，最多2位小数"
+          memberId:
+            type: string
+            format: uuid
+            description: 成员ID（可选，省略或传 null 表示无成员）
+            nullable: true
+            example: "550e8400-e29b-41d4-a716-446655440000"
+          categoryId:
+            type: string
+            format: uuid
+            description: 交易分类ID
+            example: "c47d1f5e-8a9b-4c3d-9e2f-1a2b3c4d5e6f"
+          transactionType:
+            type: string
+            enum: [INCOME, EXPENSE]
+            description: 交易类型（收入/支出）
+            example: "EXPENSE"
+          description:
+            type: string
+            maxLength: 500
+            nullable: true
+            description: 交易描述（可选）
+            example: "午餐费用"
+
+      UpdateTransactionRequest:
+        type: object
+        properties:
+          transactionDate:
+            type: string
+            format: date
+            description: 交易日期
+            example: "2024-01-15"
+          amount:
+            type: number
+            format: decimal
+            minimum: 0.01
+            exclusiveMinimum: true
+            description: 交易金额（正数）
+            example: 100.50
+          categoryId:
+            type: string
+            format: uuid
+            description: 交易分类ID
+            example: "c47d1f5e-8a9b-4c3d-9e2f-1a2b3c4d5e6f"
+          description:
+            type: string
+            maxLength: 500
+            nullable: true
+            description: 交易描述
+            example: "午餐费用"
+
+      # 账户记录请求模型
+      CreateAccountRequest:
+        type: object
+        required:
+          - accountDate
+          - balance
+          - memberId
+          - accountTypeId
+          - accountCategory
+        properties:
+          accountDate:
+            type: string
+            format: date
+            description: 账户日期，不能晚于当前日期
+            example: "2024-01-15"
+            x-constraint-description: "格式YYYY-MM-DD，不能晚于当前日期"
+          balance:
+            type: number
+            format: decimal
+            minimum: 0
+            description: 账户余额（正数或0）
+            example: 10000.00
+            x-constraint-description: "必须为非负数，最多2位小数"
+          memberId:
+            type: string
+            format: uuid
+            description: 成员ID
+            example: "550e8400-e29b-41d4-a716-446655440000"
+          accountTypeId:
+            type: string
+            format: uuid
+            description: 账户类型ID
+            example: "a12b3456-789c-0def-1234-567890abcdef"
+          accountCategory:
+            type: string
+            enum: [ASSET, LIABILITY]
+            description: 账户类别（资产/负债）
+            example: "ASSET"
+          description:
+            type: string
+            maxLength: 500
+            nullable: true
+            description: 账户描述（可选）
+            example: "招商银行储蓄卡"
+
+      UpdateAccountRequest:
+        type: object
+        properties:
+          accountDate:
+            type: string
+            format: date
+            description: 账户日期
+            example: "2024-01-15"
+          balance:
+            type: number
+            format: decimal
+            minimum: 0
+            description: 账户余额
+            example: 10000.00
+          accountTypeId:
+            type: string
+            format: uuid
+            description: 账户类型ID
+            example: "a12b3456-789c-0def-1234-567890abcdef"
+          description:
+            type: string
+            maxLength: 500
+            nullable: true
+            description: 账户描述
+            example: "招商银行储蓄卡"
+
+      # 交易记录响应模型
+      TransactionResponse:
+        type: object
+        required:
+          - success
+          - message
+          - data
+        properties:
+          success:
+            type: boolean
+            description: 操作是否成功
+            example: true
+          message:
+            type: string
+            minLength: 1
+            description: 响应消息
+            example: "操作成功"
+          data:
+            type: object
+            required:
+              - transaction
+            properties:
+              transaction:
+                $ref: '#/components/schemas/Transaction'
+
+      TransactionListResponse:
+        type: object
+        required:
+          - success
+          - data
+        properties:
+          success:
+            type: boolean
+            example: true
+          data:
+            type: object
+            required:
+              - records
+              - total
+              - summary
+            properties:
+              records:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Transaction'
+                description: 交易记录列表
+              total:
+                type: integer
+                minimum: 0
+                description: 总记录数
+                example: 100
+              summary:
+                type: object
+                required:
+                  - totalAmount
+                  - count
+                properties:
+                  totalAmount:
+                    type: number
+                    format: decimal
+                    description: 总金额
+                    example: 5000.00
+                  count:
+                    type: integer
+                    minimum: 0
+                    description: 记录条数
+                    example: 20
+
+      Transaction:
+        type: object
+        required:
+          - id
+          - transactionDate
+          - amount
+          - memberName
+          - categoryId
+          - categoryName
+          - transactionType
+          - familyId
+          - createdAt
+          - updatedAt
+        properties:
+          id:
+            type: integer
+            format: int64
+            description: 交易记录ID
+            example: 1
+          transactionDate:
+            type: string
+            format: date
+            description: 交易日期
+            example: "2024-01-15"
+          amount:
+            type: number
+            format: decimal
+            description: 交易金额
+            example: 100.50
+          memberId:
+            type: string
+            format: uuid
+            nullable: true
+            description: 成员ID（null 表示无成员）
+            example: "550e8400-e29b-41d4-a716-446655440000"
+          memberName:
+            type: string
+            description: 成员姓名（无成员时返回"未知"）
+            example: "张三"
+          categoryId:
+            type: string
+            format: uuid
+            description: 分类ID
+            example: "c47d1f5e-8a9b-4c3d-9e2f-1a2b3c4d5e6f"
+          categoryName:
+            type: string
+            description: 分类名称
+            example: "餐饮"
+          transactionType:
+            type: string
+            enum: [INCOME, EXPENSE]
+            description: 交易类型
+            example: "EXPENSE"
+          description:
+            type: string
+            nullable: true
+            description: 交易描述
+            example: "午餐费用"
+          familyId:
+            type: string
+            format: uuid
+            description: 家庭ID
+            example: "660f9500-e29b-41d4-a716-446655440001"
+          createdAt:
+            type: string
+            format: date-time
+            description: 创建时间
+            example: "2024-01-15T10:30:00Z"
+          createdBy:
+            type: string
+            format: uuid
+            nullable: true
+            description: 创建人ID
+            example: "550e8400-e29b-41d4-a716-446655440000"
+          updatedAt:
+            type: string
+            format: date-time
+            description: 更新时间
+            example: "2024-01-15T10:30:00Z"
+          updatedBy:
+            type: string
+            format: uuid
+            nullable: true
+            description: 更新人ID
+            example: "550e8400-e29b-41d4-a716-446655440000"
+
+      # 账户记录响应模型
+      AccountResponse:
+        type: object
+        required:
+          - success
+          - message
+          - data
+        properties:
+          success:
+            type: boolean
+            description: 操作是否成功
+            example: true
+          message:
+            type: string
+            minLength: 1
+            description: 响应消息
+            example: "操作成功"
+          data:
+            type: object
+            required:
+              - account
+            properties:
+              account:
+                $ref: '#/components/schemas/Account'
+
+      AccountListResponse:
+        type: object
+        required:
+          - success
+          - data
+        properties:
+          success:
+            type: boolean
+            example: true
+          data:
+            type: object
+            required:
+              - records
+              - total
+              - summary
+            properties:
+              records:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Account'
+                description: 账户记录列表
+              total:
+                type: integer
+                minimum: 0
+                description: 总记录数
+                example: 50
+              summary:
+                type: object
+                required:
+                  - totalBalance
+                  - count
+                properties:
+                  totalBalance:
+                    type: number
+                    format: decimal
+                    description: 总余额
+                    example: 100000.00
+                  count:
+                    type: integer
+                    minimum: 0
+                    description: 记录条数
+                    example: 10
+
+      Account:
+        type: object
+        required:
+          - id
+          - accountDate
+          - balance
+          - memberId
+          - memberName
+          - accountTypeId
+          - accountTypeName
+          - accountCategory
+          - familyId
+          - createdAt
+          - updatedAt
+        properties:
+          id:
+            type: integer
+            format: int64
+            description: 账户记录ID
+            example: 1
+          accountDate:
+            type: string
+            format: date
+            description: 账户日期
+            example: "2024-01-15"
+          balance:
+            type: number
+            format: decimal
+            description: 账户余额
+            example: 10000.00
+          memberId:
+            type: string
+            format: uuid
+            description: 成员ID
+            example: "550e8400-e29b-41d4-a716-446655440000"
+          memberName:
+            type: string
+            description: 成员姓名
+            example: "张三"
+          accountTypeId:
+            type: string
+            format: uuid
+            description: 账户类型ID
+            example: "a12b3456-789c-0def-1234-567890abcdef"
+          accountTypeName:
+            type: string
+            description: 账户类型名称
+            example: "银行存款"
+          accountCategory:
+            type: string
+            enum: [ASSET, LIABILITY]
+            description: 账户类别
+            example: "ASSET"
+          description:
+            type: string
+            nullable: true
+            description: 账户描述
+            example: "招商银行储蓄卡"
+          familyId:
+            type: string
+            format: uuid
+            description: 家庭ID
+            example: "660f9500-e29b-41d4-a716-446655440001"
+          createdAt:
+            type: string
+            format: date-time
+            description: 创建时间
+            example: "2024-01-15T10:30:00Z"
+          createdBy:
+            type: string
+            format: uuid
+            nullable: true
+            description: 创建人ID
+            example: "550e8400-e29b-41d4-a716-446655440000"
+          updatedAt:
+            type: string
+            format: date-time
+            description: 更新时间
+            example: "2024-01-15T10:30:00Z"
+          updatedBy:
+            type: string
+            format: uuid
+            nullable: true
+            description: 更新人ID
+            example: "550e8400-e29b-41d4-a716-446655440000"
+
+      # 删除响应模型
+      DeleteResponse:
+        type: object
+        required:
+          - success
+          - message
+        properties:
+          success:
+            type: boolean
+            description: 操作是否成功
+            example: true
+          message:
+            type: string
+            minLength: 1
+            description: 响应消息
+            example: "删除成功"
+
+      # 分类相关模型
+      Category:
+        type: object
+        required:
+          - id
+          - name
+          - type
+          - family_id
+          - system_default
+          - sort_order
+        properties:
+          id:
+            type: string
+            format: uuid
+            description: 分类ID
+            example: "550e8400-e29b-41d4-a716-446655440000"
+          name:
+            type: string
+            maxLength: 50
+            description: 分类名称
+            example: "工资收入"
+          type:
+            type: string
+            enum: [INCOME, EXPENSE]
+            description: 分类类型
+            example: "INCOME"
+          icon:
+            type: string
+            nullable: true
+            description: 图标名称
+            example: "salary"
+          color:
+            type: string
+            nullable: true
+            maxLength: 20
+            description: 颜色代码
+            example: "#4CAF50"
+          parent_id:
+            type: string
+            format: uuid
+            nullable: true
+            description: 父分类ID，null表示一级分类
+            example: null
+          sort_order:
+            type: integer
+            description: 排序序号
+            example: 1
+          system_default:
+            type: boolean
+            description: 是否为系统默认分类
+            example: false
+          family_id:
+            type: string
+            format: uuid
+            description: 家庭ID
+            example: "550e8400-e29b-41d4-a716-446655440000"
+          created_at:
+            type: string
+            format: date-time
+            description: 创建时间
+            example: "2024-01-01T00:00:00Z"
+          updated_at:
+            type: string
+            format: date-time
+            description: 更新时间
+            example: "2024-01-01T00:00:00Z"
+
+      CreateCategoryRequest:
+        type: object
+        required:
+          - name
+          - type
+        properties:
+          name:
+            type: string
+            maxLength: 50
+            description: 分类名称
+            example: "奖金"
+          type:
+            type: string
+            enum: [INCOME, EXPENSE]
+            description: 分类类型
+            example: "INCOME"
+          icon:
+            type: string
+            maxLength: 50
+            description: 图标名称（可选）
+            example: "bonus"
+          color:
+            type: string
+            maxLength: 20
+            description: 颜色代码（可选）
+            example: "#FF9800"
+          parentId:
+            type: string
+            format: uuid
+            nullable: true
+            description: 父分类ID（可选，为空表示一级分类）
+            example: null
+          sortOrder:
+            type: integer
+            description: 排序序号（可选，默认追加到末尾）
+
+      UpdateCategoryRequest:
+        type: object
+        properties:
+          name:
+            type: string
+            maxLength: 50
+            description: 分类名称（可选）
+            example: "奖金收入"
+          icon:
+            type: string
+            description: 图标名称（可选）
+            example: "bonus"
+          color:
+            type: string
+            maxLength: 20
+            description: 颜色代码（可选）
+            example: "#FF9800"
+          sortOrder:
+            type: integer
+            description: 排序序号（可选）
+
+      ReorderCategoriesRequest:
+        type: object
+        required:
+          - type
+          - orderedIds
+        properties:
+          type:
+            type: string
+            enum: [INCOME, EXPENSE]
+            description: 分类类型
+            example: "INCOME"
+          orderedIds:
+            type: array
+            minItems: 1
+            items:
+              type: string
+              format: uuid
+            description: 按排序顺序排列的分类ID数组
+            example: ["id1", "id2", "id3"]
+
+      CategoryResponse:
+        type: object
+        required:
+          - success
+          - data
+        properties:
+          success:
+            type: boolean
+            example: true
+          data:
+            type: object
+            required:
+              - category
+            properties:
+              category:
+                $ref: '#/components/schemas/Category'
+
+      CategoryListResponse:
+        type: object
+        required:
+          - success
+          - data
+        properties:
+          success:
+            type: boolean
+            example: true
+          data:
+            type: object
+            required:
+              - categories
+            properties:
+              categories:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Category'
+
+      MessageResponse:
+        type: object
+        required:
+          - success
+          - data
+        properties:
+          success:
+            type: boolean
+            example: true
+          data:
+            type: object
+            required:
+              - message
+            properties:
+              message:
+                type: string
+                example: "操作成功"
+
+      ErrorResponse:
+        type: object
+        required:
+          - success
+          - error
+        properties:
+          success:
+            type: boolean
+            enum: [false]
+            description: 固定为 false，表示操作失败
+            example: false
+          error:
+            type: object
+            required:
+              - code
+              - message
+            properties:
+              code:
+                type: string
+                enum:
+                  - INVALID_PARAMETER
+                  - MISSING_REQUIRED_FIELD
+                  - INVALID_FORMAT
+                  - CONSTRAINT_VIOLATION
+                  - USER_ALREADY_EXISTS
+                  - USER_NOT_FOUND
+                  - INVALID_CREDENTIALS
+                  - INVALID_TOKEN
+                  - TOKEN_EXPIRED
+                  - UNAUTHORIZED
+                  - FORBIDDEN
+                  - FAMILY_NOT_FOUND
+                  - FAMILY_ALREADY_EXISTS
+                  - ALREADY_IN_FAMILY
+                  - FAMILY_LIMIT_REACHED
+                  - ACCOUNT_LOCKED
+                  - RECORD_NOT_FOUND
+                  - CATEGORY_NOT_FOUND
+                  - INVALID_CATEGORY_TYPE
+                  - MEMBER_NOT_FOUND
+                  - INVALID_DATE
+                  - INVALID_AMOUNT
+                  - INTERNAL_SERVER_ERROR
+                description: 错误代码
+                example: "INVALID_PARAMETER"
+              message:
+                type: string
+                minLength: 1
+                description: 错误消息
+                example: "请求参数错误"
+              details:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - field
+                    - message
+                  properties:
+                    field:
+                      type: string
+                      minLength: 1
+                      description: 错误字段名(camelCase)
+                      example: "password"
+                    message:
+                      type: string
+                      minLength: 1
+                      description: 字段错误描述
+                      example: "密码长度至少6个字符"
+                    value:
+                      type: string
+                      nullable: true
+                      description: 导致错误的字段值(敏感信息已脱敏)
+                      example: "12345"
+                description: 详细错误信息列表
+                example:
+                  - field: "password"
+                    message: "密码长度至少6个字符"
+                    value: "12345"
+                  - field: "email"
+                    message: "邮箱格式不正确"
+                    value: "invalid-email"
+
+      # 实体模型
+      User:
+        type: object
+        required:
+          - id
+          - username
+          - email
+          - status
+          - role
+          - createdAt
+          - updatedAt
+        properties:
+          id:
+            type: string
+            format: uuid
+            description: 用户ID
+          username:
+            type: string
+            minLength: 3
+            maxLength: 20
+            pattern: '^[a-zA-Z0-9_]+$'
+            description: 用户名
+          email:
+            type: string
+            format: email
+            minLength: 5
+            maxLength: 100
+            description: 用户邮箱
+          phone:
+            type: string
+            pattern: '^1[3-9]\d{9}$'
+            minLength: 11
+            maxLength: 11
+            nullable: true
+            description: 手机号码（可选）
+          avatar:
+            type: string
+            format: uri
+            nullable: true
+            description: 头像URL（可选）
+          status:
+            type: string
+            enum: [active, inactive, locked]
+            description: 用户状态（MVP阶段移除unverified状态）
+          role:
+            type: string
+            enum: [user, admin, super_admin]
+            description: 用户角色
+          createdAt:
+            type: string
+            format: date-time
+            description: 创建时间
+          updatedAt:
+            type: string
+            format: date-time
+            description: 更新时间
+
+      # 登录响应专用的用户信息（仅包含必要字段）
+      UserLoginInfo:
+        type: object
+        required:
+          - id
+          - username
+          - email
+          - status
+          - role
+        properties:
+          id:
+            type: string
+            format: uuid
+            description: 用户ID
+            example: "550e8400-e29b-41d4-a716-446655440000"
+          username:
+            type: string
+            minLength: 3
+            maxLength: 20
+            pattern: '^[a-zA-Z0-9_]+$'
+            description: 用户名
+            example: "zhangsan"
+          email:
+            type: string
+            format: email
+            minLength: 5
+            maxLength: 100
+            description: 用户邮箱
+            example: "zhangsan@example.com"
+          avatar:
+            type: string
+            format: uri
+            nullable: true
+            description: 头像URL（可选）
+            example: "https://example.com/avatar/zhangsan.jpg"
+          status:
+            type: string
+            enum: [active, inactive, locked]
+            description: 用户状态（MVP阶段移除unverified状态）
+            example: "active"
+          role:
+            type: string
+            enum: [user, admin, super_admin]
+            description: 用户角色
+            example: "user"
+
+      CurrentFamilyInfo:
+        type: object
+        required:
+          - familyId
+          - name
+          - role
+        properties:
+          familyId:
+            type: string
+            format: uuid
+            description: 家庭ID
+            example: "750e8400-e29b-41d4-a716-446655440011"
+          name:
+            type: string
+            minLength: 1
+            maxLength: 50
+            description: 家庭名称
+            example: "张家"
+          role:
+            type: string
+            enum: [ADMIN, MEMBER, VIEWER]
+            description: 用户在该家庭中的角色
+            example: "ADMIN"
+
+      CurrentUserResponse:
+        type: object
+        required:
+          - success
+          - data
+        properties:
+          success:
+            type: boolean
+            example: true
+          data:
+            type: object
+            required:
+              - user
+            properties:
+              user:
+                type: object
+                required:
+                  - userId
+                  - username
+                  - email
+                properties:
+                  userId:
+                    type: string
+                    format: uuid
+                    description: 用户ID
+                    example: "550e8400-e29b-41d4-a716-446655440000"
+                  username:
+                    type: string
+                    description: 用户名
+                    example: "zhangsan"
+                  email:
+                    type: string
+                    format: email
+                    description: 邮箱
+                    example: "zhangsan@example.com"
+              currentFamily:
+                allOf:
+                  - $ref: '#/components/schemas/CurrentFamilyInfo'
+                nullable: true
+                description: 当前所属家庭信息,未加入家庭时为null
+
+
+    # 数据模型
+    securitySchemes:
+      bearerAuth:
+        type: http
+        scheme: bearer
+        bearerFormat: JWT
+        description: JWT认证令牌

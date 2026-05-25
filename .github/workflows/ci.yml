@@ -1,0 +1,35 @@
+name: CI
+
+# 框架级 CI — 当前仅做结构验证，无产品代码可构建。
+# 后续随 feature 实现逐步扩展。
+#
+# 策略文档: docs/architecture/quality-pipeline.md
+
+on:
+  pull_request:
+    branches: [main]
+
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  structure-check:
+    name: Structure Verification
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Verify framework structure
+        run: |
+          test -d .claude/agents/prompts
+          test -d docs/process
+          test -d docs/architecture
+          test -f CLAUDE.md
+          echo "Framework structure OK"

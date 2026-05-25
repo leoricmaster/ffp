@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 📚 产品知识库 (docs/)
+    url: https://github.com/leoricmaster/ffp/tree/main/docs
+    about: 需求、Feature 设计、架构 ADR 等中长期资产

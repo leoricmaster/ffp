@@ -1,0 +1,32 @@
+{
+  "name": "ffp-backend",
+  "version": "1.0.0",
+  "description": "FFP 后端服务",
+  "main": "dist/app.js",
+  "scripts": {
+    "dev": "echo 'No source code yet. Add src/ and configure entry point.'",
+    "build": "echo 'No source code yet.'",
+    "start": "echo 'No source code yet.'",
+    "lint": "echo 'No source code yet.'",
+    "format": "echo 'No source code yet.'"
+  },
+  "keywords": [
+    "finance",
+    "planning",
+    "family"
+  ],
+  "author": "FFP Team",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.6.1",
+    "express": "^4.22.1",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.27",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "eslint": "^8.57.1",
+    "typescript": "^5.3.3"
+  }
+}

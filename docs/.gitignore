@@ -1,0 +1,4 @@
+.trash/
+
+# Backup files
+*.bak

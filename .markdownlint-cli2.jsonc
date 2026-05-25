@@ -1,0 +1,53 @@
+// markdownlint-cli2 config — see docs/process/README.md §11 for lint policy
+//
+// 三档处理（业界惯例）:
+//   - Fix     : 默认开启，让 markdownlint-cli2 --fix 自动修
+//   - Off     : 与项目风格冲突的规则，下方 config 里 false + 说明 reason
+//   - Inline  : 仅个别文件特例，文件内用 <!-- markdownlint-disable-next-line --> 标
+{
+  "config": {
+    "default": true,
+
+    // —— Off (项目风格) ——
+    // 紧凑表格是 CLAUDE.md / README.md 导航索引的团队风格，加 padding 后行更长、对齐反而散
+    "MD060": false,
+
+    // 文档常以 metadata 表 / 导航表起步，不强制首行 H1
+    "MD041": false,
+
+    // 项目惯例：frontmatter `title:` + 正文 `# H1` 同时存在（ADR / feature 模板都这样）
+    "MD025": false,
+
+    // 中文 + 表格环境下硬换行破坏渲染
+    "MD013": false,
+
+    // 允许行内 HTML（callout、details、自定义 anchor 都需要）
+    "MD033": false,
+
+    // feature.md / state.md 等模板里同名 H2 常见（不同 section 下的重复标题合理）
+    "MD024": { "siblings_only": true },
+
+    // 命令行示例允许不显示输出
+    "MD014": false
+  },
+
+  // globs 故意不写在 config 里，由 npm script 传入：
+  //   - lint:md         → 全量 (**/*.md)
+  //   - lint:md:changed → 仅改动文件
+  // 否则 cli2 会把 config.globs 与 CLI args 取并集，增量 lint 会扫到全量
+
+  "ignores": [
+    "node_modules",
+    "**/node_modules",
+    "**/dist",
+    "**/build",
+    "**/coverage",
+    "**/.next",
+
+    "shared/api-types/generated",
+    "tests/contract/generated",
+    "tests/integration/testcases/generated",
+
+    "CHANGELOG.md"
+  ]
+}

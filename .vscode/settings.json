@@ -1,0 +1,16 @@
+{
+  "// Markdown lint": "Pick up .markdownlint-cli2.jsonc and mirror CI severity.",
+  "markdownlint.config": {
+    "extends": ".markdownlint-cli2.jsonc"
+  },
+
+  "// Formatting": "Keep end-of-file newline + trim trailing whitespace (autofix-eligible markdown rules won't re-appear).",
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "files.trimFinalNewlines": true,
+
+  "// JSON with comments": "Ensure .markdownlint-cli2.jsonc and tsconfig.json render properly.",
+  "files.associations": {
+    "*.jsonc": "jsonc"
+  }
+}

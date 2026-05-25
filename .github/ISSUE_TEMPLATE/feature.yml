@@ -1,0 +1,68 @@
+name: ✨ Feature / User Story
+description: 新需求或用户故事
+title: "[feature] "
+labels: ["type:feature"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        > 重大需求（涉及多个 User Story 或架构变更）建议先在 `docs/backlog/` 沉淀 feature.md / design.md，再来这里开 Issue 跟踪执行。
+
+  - type: input
+    id: epic
+    attributes:
+      label: 所属 Epic
+      placeholder: "epic-001-income-record"
+    validations:
+      required: false
+
+  - type: textarea
+    id: story
+    attributes:
+      label: User Story
+      description: 用 “作为 / 我希望 / 以便” 三段式描述
+      value: |
+        作为 <角色>
+        我希望 <能做什么>
+        以便 <获得什么价值>
+    validations:
+      required: true
+
+  - type: textarea
+    id: ac
+    attributes:
+      label: 验收标准 (Acceptance Criteria)
+      description: 用 Given / When / Then 描述每个场景
+      placeholder: |
+        **场景 1：成功记录收入**
+        - Given 用户已登录
+        - When 在录入页填写金额并保存
+        - Then 收入列表出现新记录
+    validations:
+      required: true
+
+  - type: input
+    id: backlog_link
+    attributes:
+      label: Backlog 文档链接
+      description: 对应的 docs/backlog/ 路径（如有）
+      placeholder: "docs/backlog/epic-XXX/ft-XXX/feature.md"
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 优先级
+      options:
+        - "P0 - 必须立即做"
+        - "P1 - 当前迭代"
+        - "P2 - 下个迭代"
+        - "P3 - 候补"
+      default: 1
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: 补充说明
+      placeholder: 风险、依赖、设计参考等

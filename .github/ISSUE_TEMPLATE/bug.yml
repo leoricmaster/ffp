@@ -1,0 +1,90 @@
+name: 🐛 Bug Report
+description: 缺陷报告
+title: "[bug] "
+labels: ["type:bug"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: 简述
+      description: 一句话说清楚发生了什么
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: 复现步骤
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望行为
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际行为
+    validations:
+      required: true
+
+  - type: input
+    id: env
+    attributes:
+      label: 环境
+      description: 浏览器 / 平台 / commit hash
+      placeholder: "Chromium 120, Linux, commit 478efa4"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: 严重度
+      options:
+        - "S0 - 阻断（功能完全不可用 / 数据损坏）"
+        - "S1 - 严重（核心场景失败 / 无法绕过）"
+        - "S2 - 一般（可绕过的功能缺陷）"
+        - "S3 - 轻微（外观 / 文案 / 边角问题）"
+      default: 2
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 优先级
+      options:
+        - "P0 - 立即修"
+        - "P1 - 当前迭代"
+        - "P2 - 排期"
+        - "P3 - 暂缓"
+      default: 1
+    validations:
+      required: true
+
+  - type: input
+    id: feature
+    attributes:
+      label: Feature
+      description: |
+        关联的 Feature ID（例如 `ft-001-create`）。
+        此字段会被 `scripts/sync-issues.sh` 解析到 vault frontmatter 的 `feature` 字段，决定 `_home.md` "Open by feature" 面板里这条 issue 归到哪个 feature 下。
+        如果 bug 跨多个 feature 或不属于任何 feature，填 `—`。
+      placeholder: "ft-001-create"
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 日志 / 截图 / 视频
+      description: 粘贴日志或拖拽截图
