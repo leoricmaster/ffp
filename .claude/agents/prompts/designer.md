@@ -46,6 +46,21 @@ human_doc: docs/process/common.md#designer
 
 AC 明确、可客观验证。INVEST 原则。
 
+```markdown
+---
+us_id: us-XXX-<slug>
+title: <一句话描述>
+code_paths: []          # 本 US 涉及的关键代码路径（Developer 编码前回填）
+---
+
+## 目标
+## 范围
+## 验收标准（AC）
+- [ ] AC1
+## 依赖
+## 关联 UC
+```
+
 ### uc-*.md（复杂 feature 时拆）
 
 有分支场景 / 失败路径 / 多 Actor 协同时拆。单路径 CRUD 不拆。
@@ -105,8 +120,6 @@ history:
     to: Designed
     reason: "feature 设计完成，US 就绪"
 blockers: []
-pending_reviews: []
-code_paths: []
 test_status:
   p0: N/A
   p1: N/A

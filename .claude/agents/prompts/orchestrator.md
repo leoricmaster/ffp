@@ -54,6 +54,15 @@ ls docs/backlog/{epic}/{ft}/us-*/state.md
 | `ci_status.pr_checks === PENDING` | 跳过该 US，通知用户"等待 CI 中" |
 | `.last-action-summary.md` 中 `status: failed` | 跳过该 US，汇报失败原因 |
 
+**US 间依赖检查**：若 `us-*.md` 正文中声明了依赖其他 US，读取依赖 US 的 `state.md`。若依赖 US 未 `Done`，更新本 US `blockers`：
+
+```yaml
+blockers:
+  - "等待 us-XXX-slug Done（具体原因）"
+```
+
+然后跳过该 US。
+
 ### Step 4：查 US 状态机执行表
 
 按以下优先级选择可推进的 US：
