@@ -29,6 +29,10 @@ history:
 ci_status:
   pr_checks: N/A      # N/A | PENDING | PASS | FAIL
   main_checks: N/A    # N/A | PENDING | PASS | FAIL
+test_status:
+  p0: N/A             # N/A | PENDING | PASS | FAIL
+  p1: N/A             # N/A | PENDING | PASS | FAIL
+  p2: N/A             # N/A | PENDING | PASS | FAIL
 ---
 ```
 
@@ -48,6 +52,9 @@ ci_status:
 | `history` | object[] | 是 | 状态变更历史，按时间升序排列 |
 | `ci_status.pr_checks` | enum | 是 | PR CI 状态 |
 | `ci_status.main_checks` | enum | 是 | main CI 状态 |
+| `test_status.p0` | enum | 是 | P0 门禁状态 |
+| `test_status.p1` | enum | 是 | P1 用例状态 |
+| `test_status.p2` | enum | 是 | P2 用例状态 |
 
 ## history 条目格式
 
@@ -77,6 +84,9 @@ ci_status:
 | 合并到 main | `ci_status.main_checks: PENDING` |
 | main CI 完成 | `ci_status.main_checks: PASS / FAIL` |
 | 用户验收 | `confirmedBy`, `confirmedAt` |
+| P0 测试开始 | `test_status.p0: PENDING` |
+| P0 测试完成 | `test_status.p0: PASS / FAIL` |
+| P1/P2 测试完成 | `test_status.p1`, `test_status.p2: PASS / FAIL` |
 
 ## 主 Agent 读取规则
 
@@ -87,3 +97,4 @@ ci_status:
 3. 若 `pending_reviews` 非空 → 按列表唤起对应 reviewer
 4. 根据 `current` 查状态机规则表决定下一步动作
 5. 若 `ci_status.pr_checks === PENDING` → 等待（通知用户）
+6. 若 `test_status.p0 === FAIL` → 停止，唤起 Developer 修复

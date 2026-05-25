@@ -102,5 +102,5 @@ sub-agent 完成后，读取其产出的 `.last-action-summary.md`，确认 `sta
 
 - 完整状态机：`docs/process/feature-flow.md` §1.2、§1.5
 - 各 Agent 编排接口：见各 Agent Prompt §编排接口
-- state.md schema：`_fragments/state-schema.md`
-- .last-action-summary.md 标准：`_fragments/orchestration-interface.md`
+- state.md schema：`_contracts/state-schema.md`
+- .last-action-summary.md 标准：`_contracts/orchestration-interface.md`

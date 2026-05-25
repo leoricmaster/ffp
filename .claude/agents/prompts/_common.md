@@ -40,12 +40,12 @@ FFP 是单人 + AI + GitHub Issues 协作的家庭财务规划工具。
 
 | 场景 | 读取 |
 |------|------|
-| 开 GitHub Issue | `_fragments/issue-template.md` |
-| 分支锁协议 | `_fragments/branch-lock.md` |
-| ID 分配详情 | `_fragments/id-allocation.md` |
-| 错误升级流程 | `_fragments/error-escalation.md` |
-| state.md 格式 | `_fragments/state-schema.md` |
-| Agent 编排接口标准 | `_fragments/orchestration-interface.md` |
+| 开 GitHub Issue | `_contracts/issue-template.md` |
+| 分支锁协议 | `_contracts/branch-lock.md` |
+| ID 分配详情 | `_contracts/id-allocation.md` |
+| 错误升级流程 | `_contracts/error-escalation.md` |
+| state.md 格式 | `_contracts/state-schema.md` |
+| Agent 编排接口标准 | `_contracts/orchestration-interface.md` |
 | 主 Agent 编排 | `.claude/agents/prompts/orchestrator.md` |
 | 完整流程 | `docs/process/README.md` |
 | Feature 设计 | `feature-design` Skill |
