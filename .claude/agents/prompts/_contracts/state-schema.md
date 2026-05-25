@@ -112,3 +112,4 @@ ci_status:
 ## 参考
 
 - 编排逻辑、状态机执行表及 Escalate 规则见 [orchestrator.md](../orchestrator.md)。
+- Agent 完成信号格式见 [orchestration-interface.md](./orchestration-interface.md)。
