@@ -6,7 +6,7 @@
  * follow the state / file contracts defined in docs/process/.
  *
  * TODO: Implement full checks:
- *   - state.md frontmatter schema validation (YAML type/feature_id/epic/current/history/ci_status/test_status)
+ *   - state.md frontmatter schema validation (YAML type/level/epic/feature_id/us_id/current/history/ci_status/test_status)
  *   - feature.md frontmatter validation
  *   - design.md > 150 lines → should exist as separate file
  *   - OpenAPI vs design.md consistency
@@ -29,8 +29,17 @@ function findStateFiles(dir) {
     for (const ft of fs.readdirSync(epicDir)) {
       const ftDir = path.join(epicDir, ft);
       if (!fs.statSync(ftDir).isDirectory()) continue;
-      const stateFile = path.join(ftDir, "state.md");
-      if (fs.existsSync(stateFile)) results.push(stateFile);
+      // Feature-level state.md
+      const featureStateFile = path.join(ftDir, "state.md");
+      if (fs.existsSync(featureStateFile)) results.push(featureStateFile);
+      // US-level state.md
+      for (const us of fs.readdirSync(ftDir)) {
+        const usDir = path.join(ftDir, us);
+        if (!fs.statSync(usDir).isDirectory()) continue;
+        if (!us.startsWith("us-")) continue;
+        const usStateFile = path.join(usDir, "state.md");
+        if (fs.existsSync(usStateFile)) results.push(usStateFile);
+      }
     }
   }
   return results;
@@ -41,6 +50,11 @@ function checkStateFile(filePath) {
   // Minimal check: must have YAML frontmatter
   if (!content.startsWith("---")) {
     return `Missing YAML frontmatter: ${path.relative(process.cwd(), filePath)}`;
+  }
+  // Check level field exists
+  const levelMatch = content.match(/level:\s*(feature|us)/);
+  if (!levelMatch) {
+    return `Missing 'level' field (feature|us): ${path.relative(process.cwd(), filePath)}`;
   }
   return null;
 }

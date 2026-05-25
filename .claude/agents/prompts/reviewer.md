@@ -155,7 +155,7 @@ Reviewer **不按状态机顺序触发**，而是按事件触发。主 Agent 在
 
 | 资源 | 路径 | 用途 |
 |------|------|------|
-| state.md | `docs/backlog/{epic}/{ft}/state.md` | 读取当前状态 |
+| state.md | `docs/backlog/{epic}/{ft}/state.md`（feature 级）或 `docs/backlog/{epic}/{ft}/{us}/state.md`（US 级） | 读取当前状态 |
 | design.md | 同目录 | 架构评审 |
 | PR | GitHub PR | 代码评审 |
 | 矛盾描述 | Tester 上报内容 | 契约裁决 |

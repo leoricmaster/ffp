@@ -78,13 +78,16 @@ OpenAPI、data-model.md 等架构级文档变更时，须在文件头部维护 `
 | architecture-review.md | `docs/backlog/{epic}/{ft}/` | frozen | 架构评审结论 |
 | test-plan.md | `docs/backlog/{epic}/{ft}/test-cases/` | frozen | 测试计划 |
 | test-report.md | `docs/backlog/{epic}/{ft}/test-cases/` | frozen | P0 门禁依据 |
-| state.md | `docs/backlog/{epic}/{ft}/` | active | 共享状态板 |
+| state.md（feature 级） | `docs/backlog/{epic}/{ft}/state.md` | active（设计阶段） | feature 级共享状态板（Draft → Designed） |
+| state.md（US 级） | `docs/backlog/{epic}/{ft}/{us}/state.md` | active | US 级共享状态板（Designed → Done） |
 | process-review.md | `docs/backlog/{epic}/{ft}/` | Done 后产出，产出后 frozen | 流程复盘（按需） |
 
 **frozen 语义**：
-- **触发**：对应 PR merge 到 main 后，由主 Agent 标记
+- **触发**：对应 US 的 PR merge 到 main 后，由主 Agent 标记该 US 为 `Done`
 - **解冻**：发现严重错误需修正时，走变更 PR（须说明影响面），Reviewer 审批
 - **与 git 的关系**：frozen 是逻辑状态，不强制 git tag；重大 milestone 可补 tag
+
+**US 子目录创建时机**：Designer 完成设计、用户审批通过后，由 Designer（或 Orchestrator）为每个 US 创建 `{us-id}/` 子目录和初始 `state.md`。单 US feature 仍遵循此结构。
 
 #### US（用户故事）与 UC（用例）职责边界
 
@@ -111,13 +114,17 @@ docs/
 │   └── {epic-id}/
 │       └── {feature-id}/
 │           ├── feature.md
-│           ├── us-*.md
 │           ├── design.md
+│           ├── state.md              # feature 级状态（Draft → Designed）
+│           ├── us-001-<slug>/
+│           │   ├── state.md          # US 级状态（Designed → Done）
+│           │   ├── us-001-<slug>.md
+│           │   └── test-cases/
+│           │       ├── test-plan.md
+│           │       └── test-report.md
+│           ├── us-002-<slug>/
+│           │   └── ...
 │           ├── architecture-review.md
-│           ├── test-cases/
-│           │   ├── test-plan.md
-│           │   └── test-report.md
-│           ├── state.md
 │           └── process-review.md
 ├── architecture/
 │   ├── c4/                    # C4 模型（L1/L2/L3）
@@ -191,13 +198,22 @@ flowchart LR
 
 **设计要点**：
 
-- `state.md` 是唯一的共享状态源，所有 agent 可读可写
+- `state.md` 采用**两级状态模型**：feature 级（`Draft → Designed`）+ US 级（`Designed → Done`）
+- feature 级 `state.md` 只在设计阶段使用，Designer 完成后不再更新
+- US 级 `state.md` 是 Developer / Tester 的主要工作板，每个 US 独立维护
 - 用户是**仲裁者**（决定 Gate 通过与否），不是**中转站**（不传递消息）
 - Agent 之间不直接通信，通过 `state.md` 和共享目录传递信息
 
 ### 4.2 state.md 共享 Board 规范
 
 `state.md` 的完整 YAML frontmatter schema、字段语义、状态转换规则见 [`_contracts/state-schema.md`](../../.claude/agents/prompts/_contracts/state-schema.md)。以下为 common.md 补充的上下文约定：
+
+**两级状态模型**：
+
+| 层级 | 文件位置 | 状态范围 | 维护者 |
+|------|---------|---------|--------|
+| feature 级 | `docs/backlog/{epic}/{ft}/state.md` | `Draft → Designed` | Designer |
+| US 级 | `docs/backlog/{epic}/{ft}/{us}/state.md` | `Designed → Implementing → Testing → Verified → Done` | Developer / Tester |
 
 **Markdown body 分区**（所有 Agent 遵循同一分区格式）：
 

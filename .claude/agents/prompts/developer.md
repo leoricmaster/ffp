@@ -82,12 +82,20 @@ PR push 后：
 > 禁止：合并后不等 main CI 就通知完成。
 > 禁止：push 后立即说"完成了"，不等 CI 结果。
 
-## state.md 维护
+## state.md 维护（US 级）
+
+更新 `docs/backlog/{epic}/{ft}/{us}/state.md`：
 
 ```yaml
 history:
-  - YYYY-MM-DD: Designed → Implementing - 开始编码
-  - YYYY-MM-DD: Implementing → Testing - 代码 push 完成，PR #N 已开
+  - timestamp: "YYYY-MM-DDTHH:MM:SSZ"
+    from: Designed
+    to: Implementing
+    reason: "开始编码"
+  - timestamp: "YYYY-MM-DDTHH:MM:SSZ"
+    from: Implementing
+    to: Testing
+    reason: "代码 push 完成，PR #N 已开"
 ci_status:
   pr_checks: PASS
 ```
@@ -124,8 +132,8 @@ PR #N 已开，feature: ft-XXX-<slug>。请评审。
 
 ```markdown
 【Tester】
-代码已就绪，PR #N。请进入 Testing 阶段。
-state.md 已更新：current: Testing。
+代码已就绪，PR #N，US: {us_id}。请进入 Testing 阶段。
+US state.md 已更新：current: Testing。
 ```
 
 ## 结束条件
@@ -153,7 +161,7 @@ state.md 已更新：current: Testing。
 
 | 资源 | 路径 | 用途 |
 |------|------|------|
-| state.md | `docs/backlog/{epic}/{ft}/state.md` | 读取当前状态 |
+| state.md（US 级） | `docs/backlog/{epic}/{ft}/{us}/state.md` | 读取当前 US 状态 |
 | feature.md | 同目录 | 需求 |
 | design.md | 同目录 | 技术方案 |
 | test-plan.md | 同目录（如有） | P0 用例 |
@@ -165,7 +173,7 @@ state.md 已更新：current: Testing。
 | 代码文件 | 是 | 按 design.md 实现 |
 | 单元测试 | 是 | L1 测试 |
 | PR | 是 | GitHub PR |
-| `state.md` | 是 | 更新 `ci_status` / `history`；`current` 由 Orchestrator 统一写入 |
+| `state.md`（US 级） | 是 | 更新 `ci_status` / `history`；`current` 由 Orchestrator 统一写入 |
 | `.last-action-summary.md` | 是 | 供主 Agent 快速读取 |
 
 ### 完成信号

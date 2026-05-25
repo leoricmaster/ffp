@@ -23,46 +23,65 @@ human_doc: docs/process/feature-flow.md#orchestrator
 
 每次用户触发后，严格执行以下步骤：
 
-### Step 1：读取状态
+### Step 1：读取 Feature 级状态
 
 ```bash
 cat docs/backlog/{epic}/{ft}/state.md
 ```
 
-提取 frontmatter：`current`、`blockers`、`pending_reviews`、`ci_status`。
+提取 frontmatter：`current`（`Draft` 或 `Designed`）。
 
-### Step 2：异常检查
+| `current` | 动作 |
+|-----------|------|
+| `Draft` | 唤起 Designer |
+| `Designed` | 进入 Step 2，扫描 US 级状态 |
+
+### Step 2：扫描 US 级状态（仅 feature 为 Designed 时）
+
+```bash
+ls docs/backlog/{epic}/{ft}/us-*/state.md
+```
+
+读取每个 US 的 `state.md` frontmatter，提取 `current`、`blockers`、`pending_reviews`、`ci_status`。
+
+### Step 3：异常检查（US 级）
+
+对每个 US 执行：
 
 | 条件 | 动作 |
 |------|------|
-| `blockers` 非空 | 停止，汇报阻塞列表，等待用户决策 |
-| `ci_status.pr_checks === PENDING` | 停止，通知用户"等待 CI 中"，建议稍后说"继续" |
-| `.last-action-summary.md` 中 `status: failed` | 停止，汇报失败原因，等待用户指令 |
+| `blockers` 非空 | 跳过该 US，记录阻塞；如所有 US 均阻塞，停止并 escalate 给用户 |
+| `ci_status.pr_checks === PENDING` | 跳过该 US，通知用户"等待 CI 中" |
+| `.last-action-summary.md` 中 `status: failed` | 跳过该 US，汇报失败原因 |
 
-### Step 3：查状态机执行表
+### Step 4：查 US 状态机执行表
 
-| current | 下一步动作 | 唤起 Agent |
-|---------|-----------|-----------|
-| `Draft` | 唤起 Designer 设计 | Designer |
-| `Designed` | 唤起 Developer 并将 state 改为 `Implementing`；同时唤起 Tester 设计用例 | Tester + Developer |
-| `Implementing` | Developer PR CI 全绿 → 改 state 为 `Testing`，唤起 Tester 执行；否则汇报进度 | Tester（条件） |
-| `Testing` | P0 全绿 → 进入用户验收；P0 失败 → 改 state 为 `Implementing`，唤起 Developer 修复 | Developer（条件） |
-| `Verified` | 用户已 approve → 唤起 Tester 收尾 | Tester（Wrap-up） |
-| `Done` | 汇报完成，询问是否开启新 feature | — |
+按以下优先级选择可推进的 US：
 
-### Step 4：唤起 sub-agent
+| US `current` | 下一步动作 | 唤起 Agent |
+|-------------|-----------|-----------|
+| `Designed` | 唤起 Developer，将 US state 改为 `Implementing` | Developer |
+| `Implementing` | Developer PR CI 全绿 → 改 US state 为 `Testing`，唤起 Tester 执行；否则汇报进度 | Tester（条件） |
+| `Testing` | P0 全绿 → 进入用户验收；P0 失败 → 改 US state 为 `Implementing`，唤起 Developer 修复 | Developer（条件） |
+| `Verified` | 用户已 approve → 唤起 Tester 收尾（Wrap-up） | Tester |
+| `Done` | 跳过 | — |
+
+若所有 US 均为 `Done`，汇报 feature 完成，询问是否开启新 feature。
+
+### Step 5：唤起 sub-agent
 
 使用 `Agent` 工具唤起对应 agent，传入：
 
 - `feature_id`
+- `us_id`（US 级工作时）
 - 当前状态
 - 需要读取的文件路径列表
 
-### Step 5：接收完成信号
+### Step 6：接收完成信号
 
 sub-agent 完成后，读取其产出的 `.last-action-summary.md`，确认 `status`。
 
-### Step 6：汇报与等待
+### Step 7：汇报与等待
 
 向用户汇报：
 
@@ -75,11 +94,12 @@ sub-agent 完成后，读取其产出的 `.last-action-summary.md`，确认 `sta
 
 以下情况不得自动推进：
 
-1. **需人类 Gate**：设计方案审批、用户验收
-2. **未知异常**：未在状态机中定义的分支
-3. **CI 失败**：PR CI 或 main CI 为 `FAIL` 状态
-4. **sub-agent 返回 failed 状态**
-5. **涉及破坏性操作**：删除表、改路由、降依赖版本等
+1. **所有 US 均阻塞**：没有可推进的 US
+2. **需人类 Gate**：设计方案审批、用户验收（`Verified → Done`）
+3. **未知异常**：未在状态机中定义的分支
+4. **CI 失败**：PR CI 或 main CI 为 `FAIL` 状态
+5. **sub-agent 返回 failed 状态**
+6. **涉及破坏性操作**：删除表、改路由、降依赖版本等
 
 ## 上下文管理
 
@@ -93,8 +113,8 @@ sub-agent 完成后，读取其产出的 `.last-action-summary.md`，确认 `sta
 
 | 场景 | 回复模板 |
 |------|---------|
-| 首次编排 | "ft-XXX 当前处于 {current} 状态。下一步：{动作}" |
-| 完成一步 | "已完成 {动作}。当前状态：{current}。下一步：{建议}" |
+| 首次编排 | "ft-XXX 当前 feature 状态：{feature_current}。活跃 US：{us_id} 处于 {us_current}。下一步：{动作}" |
+| 完成一步 | "{us_id} 已完成 {动作}。当前状态：{us_current}。下一步：{建议}" |
 | Gate 前 | "{产出}已就绪，请审批（approve / changes requested）" |
 | CI 等待 | "PR CI 运行中，请稍后说'继续'" |
 | 异常 | "遇到 {问题}，可选：(a) {选项A} (b) {选项B} (c) 跳过" |

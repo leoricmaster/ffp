@@ -129,11 +129,23 @@ sequenceDiagram
 
 ## 1.2 状态机
 
+采用**两级状态模型**：feature 级（设计阶段）+ US 级（交付阶段）。
+
+### Feature 级状态机
+
 ```mermaid
 stateDiagram-v2
   [*] --> Draft : 创建 Feature
   Draft --> Designed : 设计方案审批通过（用户 Gate）
-  Designed --> Implementing : Tester 先设计用例，Developer 后编码
+  Designed --> [*] : US 子目录创建完成
+```
+
+### US 级状态机
+
+```mermaid
+stateDiagram-v2
+  [*] --> Designed : feature 设计完成，US 就绪
+  Designed --> Implementing : Developer 开始编码
   Implementing --> Testing : 代码完成，PR 开启，PR CI 全绿
   Testing --> Verified : P0 全绿 + PR review 通过
   Verified --> Done : 用户验收通过（用户 Gate）
@@ -144,19 +156,19 @@ stateDiagram-v2
   Verified --> Implementing : P1/P2 发现严重问题（Tester 触发）
   Implementing --> Designed : 设计修正
   Designed --> Implementing : 修正后继续编码
-  Designed --> Draft : 设计方案被驳回
 ```
 
-**状态语义**：
+**US 级状态语义**：
 
 | 状态 | 含义 | 进入条件 | 离开条件 |
 |------|------|----------|---------|
-| `Draft` | 需求 / 设计草案 | 新 feature 创建 | 设计方案审批通过 → `Designed` |
-| `Designed` | 设计冻结，可开工 | 用户设计方案审批通过 | Developer 开始编码 → `Implementing` |
-| `Implementing` | 开发中 | Developer 开始写代码 | 代码 push + PR 开启 + **PR CI 全绿** → `Testing` |
-| `Testing` | 代码完成，测试执行中 | PR CI 全绿 | P0 全过 + Reviewer 通过 → `Verified` |
+| `Designed` | US 设计就绪，等待实现 | feature 设计完成，US 子目录创建 | Developer 开始编码 → `Implementing` |
+| `Implementing` | US 开发中 | Developer 开始写代码 | 代码 push + PR 开启 + **PR CI 全绿** → `Testing` |
+| `Testing` | US 代码完成，测试执行中 | PR CI 全绿 | P0 全过 + Reviewer 通过 → `Verified` |
 | `Verified` | P0 全绿 + PR review 通过，P1/P2 执行中或已完成 | P0 全过 + Reviewer 通过 | 用户 PR approve + 合并 + **main CI 全绿** → `Done` |
-| `Done` | 用户验收通过，feature 收尾 | main CI 全绿 | — |
+| `Done` | US 用户验收通过，收尾完成 | main CI 全绿 | — |
+
+**Feature 完成条件**：所有 US 均达到 `Done` 状态。Orchestrator 扫描 `us-*/state.md` 确认无活跃 US 后，向用户汇报 feature 完成。
 
 **设计修正**（`Implementing → Designed → Implementing`）：
 
@@ -205,11 +217,18 @@ stateDiagram-v2
 
 ## 1.5 主 Agent 编排
 
-本项目采用**主 Agent 编排** 模式：用户说"推进 ft-XXX"，Claude 读取 `state.md` 后自动判断当前状态、唤起正确的 sub-agent，人类只在需要判断的 Gate 处介入。Orchestrator 的完整行为定义与交互模板见 [`.claude/agents/prompts/orchestrator.md`](../../.claude/agents/prompts/orchestrator.md)。
+本项目采用**主 Agent 编排** 模式：用户说"推进 ft-XXX"，Claude 先读取 feature 级 `state.md`，若为 `Designed` 则扫描所有 US 级 `state.md`，按优先级选择可推进的 US 并唤起对应 sub-agent。人类只在需要判断的 Gate 处介入。Orchestrator 的完整行为定义与交互模板见 [`.claude/agents/prompts/orchestrator.md`](../../.claude/agents/prompts/orchestrator.md)。
 
 ### 状态机执行表
 
-主 Agent 按以下规则决定下一步动作，完整执行表（含条件分支、Escalate 规则）见 [`orchestrator.md`](../../.claude/agents/prompts/orchestrator.md) §Step 3。
+主 Agent 按以下规则决定下一步动作：
+
+1. 读取 feature 级 `state.md`：`current === Draft` → 唤起 Designer
+2. 扫描 `us-*/state.md`：按 `Designed → Implementing → Testing → Verified → Done` 优先级选择可推进的 US
+3. 对选中 US 执行异常检查（blockers / PENDING CI / failed summary）
+4. 唤起对应 Agent（Developer / Tester）
+
+完整执行表（含条件分支、Escalate 规则）见 [`orchestrator.md`](../../.claude/agents/prompts/orchestrator.md) §Step 3。
 
 完整的循环路径、关键设计约束及标准化文件定义见 [`.claude/agents/prompts/orchestrator.md`](../../.claude/agents/prompts/orchestrator.md)。
 

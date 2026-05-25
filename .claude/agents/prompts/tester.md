@@ -127,7 +127,7 @@ Tester 有**三个触发时机**，主 Agent 按当前状态判断：
 
 | 资源 | 路径 | 用途 |
 |------|------|------|
-| state.md | `docs/backlog/{epic}/{ft}/state.md` | 读取当前状态 |
+| state.md（US 级） | `docs/backlog/{epic}/{ft}/{us}/state.md` | 读取当前 US 状态 |
 | feature.md | 同目录 | 需求与 AC |
 | design.md | 同目录 | 技术方案与流程 |
 | OpenAPI | `docs/api/openapi.yaml` | 契约验证 |
@@ -139,7 +139,7 @@ Tester 有**三个触发时机**，主 Agent 按当前状态判断：
 |------|------|------|
 | `test-plan.md` | 设计阶段 | 完整测试计划（P0/P1/P2） |
 | `test-report.md` | 执行阶段 | 测试报告 |
-| `state.md` | 是 | 更新 `history` / `test_status` / `ci_status`；`current` 由 Orchestrator 统一写入 |
+| `state.md`（US 级） | 是 | 更新 `history` / `test_status` / `ci_status`；`current` 由 Orchestrator 统一写入 |
 | `.last-action-summary.md` | 是 | 供主 Agent 快速读取 |
 | `process-review.md` | 条件 | Done 后按需 |
 
