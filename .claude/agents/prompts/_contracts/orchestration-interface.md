@@ -59,7 +59,6 @@ description: 各 Agent Prompt 中"编排接口"章节的标准模板，确保主
 agent: designer          # designer | developer | tester | reviewer
 feature_id: ft-XXX-slug
 status: success          # success | failed | blocked | needs_human_gate
-duration_estimate: "2h"  # 可选，供排期参考
 ---
 
 ## 完成内容
@@ -81,7 +80,6 @@ duration_estimate: "2h"  # 可选，供排期参考
 | `agent` | 是 | 本 Agent 名称 |
 | `feature_id` | 是 | 关联 feature |
 | `status` | 是 | 主 Agent 据此判断流转 |
-| `duration_estimate` | 否 | 可选 |
 | `needs_human_gate` | 否 | 在 frontmatter 或正文中标记 |
 
 **长度约束**：正文不超过 20 行，总计不超过 300 tokens。主 Agent 每次必读本文件。

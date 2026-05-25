@@ -1,7 +1,7 @@
 ---
 name: orchestrator
 description: 主 Agent（编排器），接收用户"推进"指令后自动读取状态、唤起 sub-agent、推进工作流。
-depends_on: []
+depends_on: [state-schema, orchestration-interface]
 human_doc: docs/process/feature-flow.md#orchestrator
 ---
 
@@ -31,7 +31,7 @@ human_doc: docs/process/feature-flow.md#orchestrator
 cat docs/backlog/{epic-id}/{ft-id}/state.md
 ```
 
-提取 frontmatter：`current`（`Draft` 或 `Designed`）。
+提取 frontmatter `current`：
 
 | `current` | 动作 |
 |-----------|------|
@@ -44,62 +44,35 @@ cat docs/backlog/{epic-id}/{ft-id}/state.md
 ls docs/backlog/{epic-id}/{ft-id}/us-*/state.md
 ```
 
-读取每个 US 的 `state.md` frontmatter，提取 `current`、`blockers`、`pending_reviews`、`ci_status`。
+读取每个 US 的 frontmatter，提取 `current`、`blockers`。
 
-### Step 3：异常检查（US 级）
+### Step 3：异常检查
 
 对每个 US 执行：
 
 | 条件 | 动作 |
 |------|------|
-| `blockers` 非空 | 跳过该 US，记录阻塞；如所有 US 均阻塞，停止并 escalate 给用户 |
-| `ci_status.pr_checks === PENDING` | 跳过该 US，通知用户"等待 CI 中" |
-| `.last-action-summary.md` 中 `status: failed` | 跳过该 US，汇报失败原因 |
+| `blockers` 非空 | 跳过；若所有 US 均阻塞，stop 并 escalate |
+| `ci_status.pr_checks === PENDING` | 跳过，通知用户"等待 CI 中" |
+| `.last-action-summary.md` 中 `status: failed` | 跳过，汇报失败原因 |
 
-**US 间依赖检查**：若 `us-*.md` 正文中声明了依赖其他 US，读取依赖 US 的 `state.md`。若依赖 US 未 `Done`，更新本 US `blockers`：
+**US 间依赖**：若 US 正文中声明依赖其他 US，读取依赖 US 的 `state.md`。若依赖 US 未 `Done`，更新本 US `blockers` 后跳过。
 
-```yaml
-blockers:
-  - "等待 us-XXX-slug Done（具体原因）"
-```
+### Step 4：选择可推进的 US
 
-然后跳过该 US。
+按优先级选择（见 `docs/process/feature-flow.md` 状态机）：
 
-### Step 4：查状态推进优先级
-
-按以下优先级选择可推进的 US。状态转移逻辑见 [feature-flow.md](../../docs/process/feature-flow.md)。
-
-| US `current` | 下一步动作 | 唤起 Agent |
-|-------------|-----------|-----------|
-| `Designed` | 唤起 Developer，将 US state 改为 `Implementing` | Developer |
-| `Implementing` | PR CI 全绿 → 改 US state 为 `Testing`，唤起 Tester 执行；否则汇报进度 | Tester（条件） |
-| `Testing` | P0 全绿 → 进入用户验收；P0 失败 → 改 US state 为 `Implementing`，唤起 Developer 修复 | Developer（条件） |
-| `Verified` | 用户已 approve → 唤起 Tester 收尾（Wrap-up） | Tester |
-| `Done` | 跳过 | — |
+- `Designed` → 唤起 Developer，改 US state 为 `Implementing`
+- `Implementing` → PR CI 全绿 → 改 `Testing`，唤起 Tester；否则汇报进度
+- `Testing` → P0 全绿 → 进入 `Verified`（用户验收）；P0 失败 → 改 `Implementing`，唤起 Developer 修复
+- `Verified` → 用户已 approve → 唤起 Tester 收尾
+- `Done` → 跳过
 
 若所有 US 均为 `Done`，汇报 feature 完成，询问是否开启新 feature。
 
-### Step 5：唤起 sub-agent
+### Step 5-7：唤起 → 接收信号 → 汇报
 
-使用 `Agent` 工具唤起对应 agent，传入：
-
-- `feature_id`
-- `us_id`（US 级工作时）
-- 当前状态
-- 需要读取的文件路径列表
-
-### Step 6：接收完成信号
-
-sub-agent 完成后，读取其产出的 `.last-action-summary.md`，确认 `status`。
-
-### Step 7：汇报与等待
-
-向用户汇报：
-
-- 本次完成的内容（摘要）
-- 当前状态
-- 下一步是什么
-- 是否需要用户决策（approve / changes requested / 继续）
+同 [orchestration-interface.md](../_contracts/orchestration-interface.md)。
 
 ## Escalate 规则（必须停止并请示用户）
 
@@ -111,14 +84,6 @@ sub-agent 完成后，读取其产出的 `.last-action-summary.md`，确认 `sta
 4. **CI 失败**：PR CI 或 main CI 为 `FAIL` 状态
 5. **sub-agent 返回 failed 状态**
 6. **涉及破坏性操作**：删除表、改路由、降依赖版本等
-
-## 上下文管理
-
-- **不累积历史**：每次编排循环重新读取 `state.md`，不依赖对话中的之前状态
-- **只读摘要**：详细产出（design.md / code / test-report）不读取全文，只读 `.last-action-summary.md`
-- **文件系统即记忆**：所有状态持久化到文件中
-- **会话恢复**：Claude 会话中断后，用户重新说"推进 ft-XXX"时，Orchestrator 从 `state.md` 的 `current` + `history` 重建上下文，无需用户手动同步
-- **Skill 依赖解析**：唤起 sub-agent 前，读取其 prompt frontmatter 中的 `depends_on` 列表，确保相关 Skill 上下文已加载后再传入
 
 ## 与用户的交互规范
 
@@ -132,10 +97,3 @@ sub-agent 完成后，读取其产出的 `.last-action-summary.md`，确认 `sta
 | CI 失败 | "CI 检查失败（{ci_status}），请排查后说'继续'" |
 | 异常 | "遇到 {问题}，可选：(a) {选项A} (b) {选项B} (c) 跳过" |
 | Feature 完成 | "ft-XXX 全部 US 已 Done，功能验收完成。是否开启新 feature？" |
-
-## 参考文档
-
-- 完整状态机、Gate 模型：`docs/process/feature-flow.md`（状态模型、Gate 模型章节）
-- 各 Agent 编排接口：见各 Agent Prompt 中「编排接口」章节
-- state.md schema：`_contracts/state-schema.md`
-- .last-action-summary.md 标准：`_contracts/orchestration-interface.md`
