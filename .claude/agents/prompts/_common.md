@@ -36,7 +36,7 @@ FFP 是单人 + AI + GitHub Issues 协作的家庭财务规划工具。
 
 **单点来源原则**：同一约束只在一个地方定义，其他地方引用。
 
-## 按需引用
+## 按需引用（L2–L3）
 
 | 场景 | 读取 |
 |------|------|
@@ -47,16 +47,4 @@ FFP 是单人 + AI + GitHub Issues 协作的家庭财务规划工具。
 | state.md 格式 | `_contracts/state-schema.md` |
 | Agent 编排接口标准 | `_contracts/orchestration-interface.md` |
 | 主 Agent 编排 | `.claude/agents/prompts/orchestrator.md` |
-| 完整流程 | `docs/process/README.md` |
-| Feature 设计 | `feature-design` Skill |
-| 架构评审 | `design-review` Skill |
-| PR 规范 | `feature-pr-flow` Skill |
-| 代码规范 | `engineering` Skill |
-| 代码评审 | `code-review` Skill |
-| 测试设计 | `test-design-rubric` Skill |
-| 测试执行 | `test-execution` Skill |
-| E2E 规范 | `e2e-playwright` Skill |
-| ADR 写作 | `adr-writing` Skill |
-| Storybook | `storybook-authoring` Skill |
-| 质量管道策略 | `docs/architecture/quality-pipeline.md` |
-| 测试资产注册表 | `docs/architecture/test-registry.md` |
+| 完整流程与 Skill 索引 | `docs/process/README.md` |

@@ -38,6 +38,12 @@ cat docs/backlog/{epic-id}/{ft-id}/state.md
 | `Draft` | 唤起 Designer |
 | `Designed` | 进入 Step 2，扫描 US 级状态 |
 
+**Designer 完成后**：读取 `.last-action-summary.md`。
+- `status: needs_human_gate` → 向用户提交设计方案审批
+  - approve → 更新 feature 级 `state.current: Designed`，进入 Step 2
+  - changes requested → 重新唤起 Designer
+- `status: failed` → 读取 `blockers` 写入 feature 级 state，escalate 给用户
+
 ### Step 2：扫描 US 级状态（仅 feature 为 Designed 时）
 
 ```bash
@@ -62,7 +68,7 @@ ls docs/backlog/{epic-id}/{ft-id}/us-*/state.md
 
 按优先级选择（见 `docs/process/feature-flow.md` 状态机）：
 
-- `Designed` → 唤起 Developer，改 US state 为 `Implementing`
+- `Designed` → 唤起 Developer（改 `Implementing`）；同步唤起 Tester 设计用例
 - `Implementing` → PR CI 全绿 → 改 `Testing`，唤起 Tester；否则汇报进度
 - `Testing` → P0 全绿 → 进入 `Verified`（用户验收）；P0 失败 → 改 `Implementing`，唤起 Developer 修复
 - `Verified` → 用户已 approve → 唤起 Tester 收尾
