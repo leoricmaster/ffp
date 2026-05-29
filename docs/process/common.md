@@ -20,13 +20,13 @@
 | 层级 | 位置 | 核心问题 | 详情见 |
 |------|------|---------|--------|
 | **L1 工具强制** | CI 脚本、pre-commit hooks、Lint 配置、GitHub Settings | 机器能自动检查并阻断什么？ | 规划中（`.github/workflows/`、`.husky/` 等待创建） |
-| **L2 项目级流程** | `_common.md` | 所有 Agent 必须共同遵守的最小硬约束是什么？ | [`_common.md`](../../.claude/agents/prompts/_common.md) |
+| **L2 项目级流程** | `l2-constraints.md` | 所有 Agent 必须共同遵守的最小硬约束是什么？ | [`l2-constraints.md`](./l2-constraints.md) |
 | **L3 Agent 级职责** | Agent Prompt | 每个角色的方法论和行为边界是什么？ | 本文件 §3 各角色定义；完整定义见 Agent Prompt |
 | **L4 任务级技术** | Skill | 特定任务的标准操作流程和模板是什么？ | 本文件 §5 Skill 列表 |
 
 ### 1.3 三类规范载体的定位
 
-**`_common.md`** 是项目宪章——所有 Agent 共享的最小必要约束集。
+**`l2-constraints.md`** 是项目宪章——所有 Agent 共享的最小必要约束集。
 
 **Agent Prompt** 只保留该角色特有的、无法工具化的、需要上下文理解的规范（如 Red-Green-Refactor 方法论、架构一致性检查的关键词选择策略）。
 
@@ -300,7 +300,7 @@ Skill 属于 **L4 任务级技术**，是 Agent Prompt（L3）中可提取的规
 | 读者 | 文档 | 说明 |
 |------|------|------|
 | 人类（流程总览） | [智能体 Prompt](../../.claude/agents/prompts/) | 完整智能体定义，按角色浏览 |
-| Agent（流程总览） | [`_common.md`](../../.claude/agents/prompts/_common.md) | 项目宪章，所有 Agent 必读 |
+| Agent（流程总览） | [`l2-constraints.md`](./l2-constraints.md) | 项目宪章，所有 Agent 必读 |
 | Designer / Reviewer | [`feature-design`](../../.claude/skills/feature-design/SKILL.md)、[`design-review`](../../.claude/skills/design-review/SKILL.md) Skill | feature.md / design.md 的编写与评审规范 |
 | Developer | [`engineering`](../../.claude/skills/engineering/SKILL.md) Skill | 技术栈编码规范、自检流程、单元测试模板 |
 | Developer / Reviewer | [`code-review`](../../.claude/skills/code-review/SKILL.md) Skill | PR 评审 checklist 与红线 |
