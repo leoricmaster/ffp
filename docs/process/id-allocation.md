@@ -1,28 +1,48 @@
 ---
 name: id-allocation
-description: 全局 ID 分配脚本使用说明
+description: 全局 ID 分配脚本使用说明（已 Skill 化，Agent 应调用 Skill `id-allocation`）
 ---
 
-# ID 分配脚本
+# ID 分配（已 Skill 化）
 
-**任何时候新建 ft/td/bg ID，必须先调用脚本**，禁止手填序号。
+> **Agent 指引**：调用 Skill `id-allocation`，不要直接跑脚本。
+
+本脚本用于分配 Feature / Tech Debt / Bug ID。
+
+## 调用方式
+
+**Agent**（自动调用）：
 
 ```bash
-# 分配 Feature ID
-node scripts/allocate-id.js ft <slug>
-# 输出: ft-008-create-income
-
-# 分配 Tech Debt ID
-node scripts/allocate-id.js td <slug>
-# 输出: td-035-openapi-categories
-
-# 分配 Bug ID
-node scripts/allocate-id.js bg <slug>
-# 输出: bg-003-login-error
+Skill "id-allocation"
 ```
 
-脚本自动完成：读取注册表 → 计算下一个序号 → grep 仓库冲突检查 → 更新 `Product-Backlog.md` 注册表 → 输出完整 ID。
+**人类**（直接运行）：
 
-**冲突报错示例**：注册表写 ft 最大 003，但仓库里已有 ft-004 引用 → 脚本报错，要求人工修正注册表后重试。
+```bash
+node scripts/allocate-id.js <type> <slug>
+```
 
-**单人 + 单实例无并发冲突**。若未来并行多 session，需加文件锁。
+| 类型 | 命令 | 示例输出 |
+|------|------|----------|
+| Feature | `ft <slug>` | `ft-008-create-income` |
+| Tech Debt | `td <slug>` | `td-035-openapi-categories` |
+| Bug | `bg <slug>` | `bg-003-login-error` |
+
+## 脚本行为
+
+脚本自动完成：
+
+1. 读取 `docs/backlog/Product-Backlog.md` 注册表
+2. 计算下一个序号
+3. grep 全仓库冲突检查
+4. 更新注册表
+5. 输出完整 ID
+
+## 冲突处理
+
+注册表写 `ft` 最大 003，但仓库里已有 `ft-004` 引用 → 脚本报错，要求人工修正注册表后重试。
+
+## 单人使用说明
+
+单人 + 单实例无并发冲突。若未来并行多 session，需加文件锁。

@@ -9,7 +9,7 @@ human_doc: docs/process/common.md#designer
 ## 硬约束（所有 Agent 共享）
 
 - 所有代码修改走 PR，禁止直接 push main
-- 新建 ft/td/bg ID 必须先运行 `node scripts/allocate-id.js <type> <slug>`
+- 新建 ft/td/bg ID 必须先调用 Skill `id-allocation`
 - `gh issue create` body 必须带类型标签：`Feature: ft-xxx` / `Bug: bg-xxx`（额外带 `severity:` 和 `area:`）/ `TechDebt: td-xxx`
 - 错误分两级：L1（lint/typecheck/单测失败等自行修复）/ L2（契约矛盾、架构改动、P0 门禁被迫绕过等上报用户或 Reviewer）
 - 结束工作前确认 `state.md` 已更新
@@ -74,7 +74,7 @@ status: success          # success | failed | blocked | needs_human_gate
 
 ## 硬规则
 
-- 必须按 `node scripts/allocate-id.js ft <slug>` 分配 ID
+- 必须调用 Skill `id-allocation` 分配 ID
 - 设计开始时初始化 feature 级 `state.md`（位置：`docs/backlog/{epic-id}/{feature-id}/`）
 - ≥ 2 个 US 时必须垂直切片，禁止按技术层拆分
 - 复杂 feature（≥ 2 分支场景 / 失败路径 / 多 Actor）拆 `uc-*.md`

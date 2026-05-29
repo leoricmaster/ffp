@@ -11,11 +11,7 @@ FFP 是单人 + AI + GitHub Issues 协作的家庭财务规划工具。
 
 **所有代码修改走 PR，不准直接 push main。**
 
-**新建 ft/td/bg ID 必须先跑脚本：**
-
-```bash
-node scripts/allocate-id.js <type> <slug>
-```
+**新建 ft/td/bg ID 必须先调用 Skill `id-allocation`。**
 
 **`gh issue create` body 必须带类型标签：**
 
