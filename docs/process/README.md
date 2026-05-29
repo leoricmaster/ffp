@@ -36,6 +36,13 @@
 | Sub-agent 协调机制 | 共享 Board、state.md 规范、Agent 更新规则 | [`common.md` §4](./common.md#4-sub-agent-协调机制) |
 | 技能体系（Skill） | 判定标准、维护规范、现有 Skill 列表 | [`common.md` §5](./common.md#5-技能体系skill) |
 | 参考资源 | 按读者分类的文档导航 | [`common.md` §6](./common.md#6-参考资源) |
+| **L2 硬约束** | 所有 Agent 共享的最小流程规则 | [`l2-constraints.md`](./l2-constraints.md) |
+| **state.md Schema** | YAML frontmatter 标准、两级状态模型 | [`state-schema.md`](./state-schema.md) |
+| **编排完成信号** | `.last-action-summary.md` 格式标准 | [`orchestration-interface.md`](./orchestration-interface.md) |
+| **分支锁协议** | 多 actor 分支竞争防护 | [`branch-lock.md`](./branch-lock.md) |
+| **错误升级** | L1/L2 分级与升级路径 | [`error-escalation.md`](./error-escalation.md) |
+| **ID 分配** | ft/td/bg ID 分配脚本使用说明 | [`id-allocation.md`](./id-allocation.md) |
+| **Issue 模板** | 开 GitHub Issue 时的 body 模板 | [`issue-template.md`](./issue-template.md) |
 
 ---
 

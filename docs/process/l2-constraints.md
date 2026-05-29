@@ -1,6 +1,6 @@
 ---
-name: core-fragments
-description: FFP Agent 核心约束——所有 Agent 共享的硬规则（L2 项目宪章）
+name: l2-constraints
+description: FFP 项目 L2 级硬约束——所有 Agent 共享的最小流程规则（已内联到各 agent prompt）
 ---
 
 # FFP Agent 核心约束
@@ -51,11 +51,11 @@ node scripts/allocate-id.js <type> <slug>
 
 | 场景 | 文件 |
 |------|------|
-| 开 GitHub Issue | `_contracts/issue-template.md` |
-| 分支锁协议 | `_contracts/branch-lock.md` |
-| ID 分配详情 | `_contracts/id-allocation.md` |
-| 错误升级流程 | `_contracts/error-escalation.md` |
-| state.md 格式 | `_contracts/state-schema.md` |
-| 完成信号格式 | `_contracts/orchestration-interface.md` |
-| 主 Agent 编排逻辑 | `orchestrator.md` |
-| 完整流程与 Skill 索引 | `docs/process/README.md` |
+| 开 GitHub Issue | [`issue-template.md`](./issue-template.md) |
+| 分支锁协议 | [`branch-lock.md`](./branch-lock.md) |
+| ID 分配详情 | [`id-allocation.md`](./id-allocation.md) |
+| 错误升级流程 | [`error-escalation.md`](./error-escalation.md) |
+| state.md 格式 | [`state-schema.md`](./state-schema.md) |
+| 完成信号格式 | [`orchestration-interface.md`](./orchestration-interface.md) |
+| 主 Agent 编排逻辑 | `orchestrator.md`（`.claude/agents/prompts/`） |
+| 完整流程与 Skill 索引 | [`README.md`](./README.md) |

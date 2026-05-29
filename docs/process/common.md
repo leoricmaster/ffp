@@ -83,6 +83,7 @@ OpenAPI、data-model.md 等架构级文档变更时，须在文件头部维护 `
 | process-review.md | `docs/backlog/{epic}/{ft}/` | Done 后产出，产出后 frozen | 流程复盘（按需） |
 
 **frozen 语义**：
+
 - **触发**：对应 US 的 PR merge 到 main 后，由主 Agent 标记该 US 为 `Done`
 - **解冻**：发现严重错误需修正时，走变更 PR（须说明影响面），Reviewer 审批
 - **与 git 的关系**：frozen 是逻辑状态，不强制 git tag；重大 milestone 可补 tag
@@ -206,7 +207,7 @@ flowchart LR
 
 ### 4.2 state.md 共享 Board 规范
 
-`state.md` 的完整 YAML frontmatter schema、字段语义、状态转换规则见 [`_contracts/state-schema.md`](../../.claude/agents/prompts/_contracts/state-schema.md)。以下为 common.md 补充的上下文约定：
+`state.md` 的完整 YAML frontmatter schema、字段语义、状态转换规则见 [`state-schema.md`](./state-schema.md)。以下为 common.md 补充的上下文约定：
 
 **两级状态模型**：
 
@@ -228,7 +229,7 @@ flowchart LR
 <!-- 其他需要传递的信息 -->
 ```
 
-> **单点来源原则**：`_contracts/state-schema.md` 与本文档共同定义 state.md 规范。若字段定义冲突，以 `_contracts/state-schema.md` 为准；本文档仅补充 body 分区格式与协作上下文。
+> **单点来源原则**：[`state-schema.md`](./state-schema.md) 与本文档共同定义 state.md 规范。若字段定义冲突，以 `state-schema.md` 为准；本文档仅补充 body 分区格式与协作上下文。
 
 ### 4.3 Agent 更新规则
 

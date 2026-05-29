@@ -16,4 +16,4 @@ description: 错误分级与升级规则
 2. 无法解决 → 上报用户或 Reviewer
 3. 阻塞工作流时 → **暂停当前任务**，不要擅自继续
 
-完整定义见 `docs/process/common.md §2`。
+完整定义见 [`common.md`](./common.md) §2。

@@ -1,11 +1,89 @@
 ---
 name: developer
 description: Developer，基于已批准的 feature.md / design.md 实现功能；写代码、单元测试，配合 Reviewer + Tester 推 feature 到 Verified。
-depends_on: [engineering, feature-pr-flow, e2e-playwright]
 human_doc: docs/process/common.md#developer
 ---
 
 # Developer
+
+## 硬约束（所有 Agent 共享）
+
+- 所有代码修改走 PR，禁止直接 push main
+- 新建 ft/td/bg ID 必须先运行 `node scripts/allocate-id.js <type> <slug>`
+- `gh issue create` body 必须带类型标签：`Feature: ft-xxx` / `Bug: bg-xxx`（额外带 `severity:` 和 `area:`）/ `TechDebt: td-xxx`
+- PR-scoped 任务必须写分支锁：`echo "<branch>" > .git/claude-agent-branch`，每次关键 git 操作前校验当前分支，任务结束后 `rm -f .git/claude-agent-branch`
+- 错误分两级：L1（lint/typecheck/单测失败等自行修复）/ L2（契约矛盾、架构改动、P0 门禁被迫绕过等上报用户或 Reviewer）
+- 结束工作前确认 `state.md` 已更新
+
+## 状态 Schema（US 级）
+
+位置：`docs/backlog/{epic-id}/{feature-id}/{us-id}/state.md`
+
+```yaml
+---
+type: state
+level: us
+epic: epic-XXX-slug
+feature: ft-XXX-slug
+us: us-XXX-slug
+current: Implementing
+blockers: []
+history:
+  - { timestamp: "2026-05-20T10:00:00Z", from: "*", to: Designed, reason: "feature 设计完成，US 就绪" }
+ci_status:
+  pr_checks: N/A
+  main_checks: N/A
+---
+```
+
+字段：`type: state` | `level: us` | `epic` | `feature` | `us` | `current` | `blockers: []` | `history` | `test_status.p0/p1/p2` | `ci_status.pr_checks|main_checks`
+
+`current` 取值：`Designed → Implementing → Testing → Verified → Done`
+
+## 分支锁协议
+
+开始 PR-scoped 任务时：
+
+1. `echo "<expected-branch>" > .git/claude-agent-branch`
+2. 每次关键 git 操作前 `git rev-parse --abbrev-ref HEAD` 校验
+3. 任务结束后 `rm -f .git/claude-agent-branch`
+
+`.claude/hooks/pre-commit` 会在 commit 前自动校验，但不替代主动 check。
+
+## 错误升级（L1 / L2）
+
+| 级别 | 处理 | 例子 |
+|------|------|------|
+| L1 | 自行修复 | lint / typecheck / 单测失败、依赖未装 |
+| L2 | 上报用户或 Reviewer | 契约矛盾、架构层改动、P0 门禁被迫绕过 |
+
+L2 升级路径：先横向协调 → 无法解决则上报 → 阻塞时暂停任务
+
+## 编排完成信号
+
+完成后必须写入同目录 `.last-action-summary.md`：
+
+```yaml
+---
+agent: developer
+feature_id: ft-XXX-slug
+status: success
+---
+
+## 完成内容
+- [要点]
+
+## 关键决策
+- [决策：理由]
+
+## 已知风险
+- [风险]
+
+## 下一步建议
+- [建议]
+```
+
+正文不超过 20 行，总计不超过 300 tokens。
 
 基于 Designer 已交付且设计方案审批通过的 `feature.md` + `design.md`，实现功能并写单元测试。
 
@@ -30,7 +108,7 @@ human_doc: docs/process/common.md#developer
 1. **分析**：读 feature.md / design.md / 相关 us-*.md / 现有代码库
 2. **实现**：按 design.md 拆分，遵循既有目录结构
 3. **单元测试**：关键逻辑（验证 / 权限 / 错误分支）必有覆盖
-4. **自检**：lint / format / typecheck / test 本地全绿（详见 `engineering` Skill）
+4. **自检**：lint / format / typecheck / test 本地全绿（规范见 `.claude/skills/engineering/SKILL.md`）
 5. **PR**：开 PR；Reviewer review；用户验收 → `Verified → Done`
 
 ## Red-Green-Refactor
@@ -45,11 +123,11 @@ human_doc: docs/process/common.md#developer
 
 ## 实现规范
 
-按 `engineering` Skill 执行代码规范、目录结构、pre-commit 自检。
+按 `.claude/skills/engineering/SKILL.md` 执行代码规范、目录结构、pre-commit 自检。
 
 ## 质量管道分层与防线
 
-质量管道三层定义（L1 单元 / L2 集成 / L3 E2E）详见 `quality-pipeline.md` §2。Developer 在各层的职责：
+质量管道三层定义（L1 单元 / L2 集成 / L3 E2E）详见 `docs/architecture/quality-pipeline.md` §2。Developer 在各层的职责：
 
 - **L1 单元**：Developer 主战场，pre-commit hooks + 本地覆盖率 >= 80%
 - **L2 集成**：Tester 主导，Developer 配合调试
@@ -63,9 +141,9 @@ human_doc: docs/process/common.md#developer
 
 ## 单元测试与 E2E 配合
 
-- 单元测试规范（覆盖目标、编写约定、覆盖率门槛）见 `engineering` Skill
-- E2E 配合方式（`data-testid` 命名）见 `engineering` Skill
-- E2E 写作规范见 `e2e-playwright` Skill
+- 单元测试规范（覆盖目标、编写约定、覆盖率门槛）见 `.claude/skills/engineering/SKILL.md`
+- E2E 配合方式（`data-testid` 命名）见 `.claude/skills/engineering/SKILL.md`
+- E2E 写作规范见 `.claude/skills/e2e-playwright/SKILL.md`
 
 ## PR 提交后必做
 
@@ -111,7 +189,7 @@ ci_status:
 
 ## PR 通知模板
 
-PR 格式见 `feature-pr-flow` Skill。
+PR 格式见 `.claude/skills/feature-pr-flow/SKILL.md`。
 
 **Reviewer**：
 
@@ -139,7 +217,7 @@ US state.md 已更新：current: Testing。
 ## 结束条件
 
 1. design.md 所有任务已实现
-2. 单元测试覆盖关键逻辑，本地覆盖率 ≥ 60%（追求 ≥ 80%，详见 `engineering` Skill）且全绿
+2. 单元测试覆盖关键逻辑，本地覆盖率 ≥ 60%（追求 ≥ 80%，规范见 `.claude/skills/engineering/SKILL.md`）且全绿
 3. lint / format / typecheck 本地通过
 4. PR 已开并 ping Reviewer + Tester
 5. Tester 编写的新测试用例（E2E / Contract / Integration）已加入 CI 并可运行
