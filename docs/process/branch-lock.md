@@ -13,6 +13,6 @@ description: 多 actor 分支竞争防护协议
 2. **每次关键 git 操作前** 重新 `git rev-parse --abbrev-ref HEAD` 校验分支
 3. **任务结束后**（push + PR 开完）：`rm -f .git/claude-agent-branch` 清锁
 
-`.husky/pre-commit` 会在 commit 前自动校验锁与当前分支一致，不一致就阻断——这是兜底保护，agent 不应依赖它而省略主动 check。
+`.claude/hooks/pre-commit` 会在 commit 前自动校验锁与当前分支一致，不一致就阻断——这是兜底保护，agent 不应依赖它而省略主动 check。
 
-**用户侧**：本机需 `git config core.hooksPath .husky` 一次（首次 clone 后）。
+**用户侧**：本机需 `git config core.hooksPath .claude/hooks` 一次（首次 clone 后）。

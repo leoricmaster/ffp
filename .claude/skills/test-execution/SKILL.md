@@ -146,11 +146,11 @@ tester: Agent
 
 ## state.md 更新规则
 
-Tester 是 state.md 在测试阶段的**主维护人**：
+Tester 是 `test_status` / `history`（测试相关记录）在测试阶段的主维护人；`current` 字段由 Orchestrator 统一写入，Tester 通过 `.last-action-summary.md` 汇报建议状态：
 
-| 事件 | state.md 变化 |
-|------|--------------|
-| Developer 代码 push 完，PR CI 全绿 | `Implementing → Testing`，history 追加 |
-| 全部 P0 PASS + PR review 通过 | `Testing → Verified`，history 追加 |
-| 用户 PR approve + 合并 + main CI 全绿 | `Verified → Done`，history 追加 |
-| P0 失败打回 | `Testing → Implementing`，history 追加 regression |
+| 事件 | state.md 变化（Orchestrator 执行） | Tester 动作 |
+|------|-----------------------------------|------------|
+| Developer 代码 push 完，PR CI 全绿 | `current: Testing`，history 追加 | 更新 `test_status.p0: PENDING` |
+| 全部 P0 PASS + PR review 通过 | `current: Verified`，history 追加 | `.last-action-summary.md` 标记 `suggested_state: "Verified"` |
+| 用户 PR approve + 合并 + main CI 全绿 | `current: Done`，history 追加 | 执行收尾仪式 |
+| P0 失败打回 | `current: Implementing`，history 追加 regression | `.last-action-summary.md` 标记 `suggested_state: "Implementing"` |

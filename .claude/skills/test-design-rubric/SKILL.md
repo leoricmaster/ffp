@@ -103,7 +103,7 @@ uc-*.md Error Path
 
 **特别提醒**（ft-002 教训）：字符串匹配逻辑必须设计**重叠 / 前缀冲突**场景（如 `category.startsWith()` 在 "工资" 和 "工资-基本" 同时存在时）。
 
-## 5. Contract 测试 checklist
+## 6. Contract 测试 checklist
 
 ### 设计前必做（一致性检查）
 

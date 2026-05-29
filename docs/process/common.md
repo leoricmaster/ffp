@@ -20,13 +20,13 @@
 | 层级 | 位置 | 核心问题 | 详情见 |
 |------|------|---------|--------|
 | **L1 工具强制** | CI 脚本、pre-commit hooks、Lint 配置、GitHub Settings | 机器能自动检查并阻断什么？ | 规划中（`.github/workflows/`、`.husky/` 等待创建） |
-| **L2 项目级流程** | `_common.md` | 所有 Agent 必须共同遵守的最小硬约束是什么？ | [`_common.md`](../../.claude/agents/prompts/_common.md) |
+| **L2 项目级流程** | `l2-constraints.md` | 所有 Agent 必须共同遵守的最小硬约束是什么？ | [`l2-constraints.md`](./l2-constraints.md) |
 | **L3 Agent 级职责** | Agent Prompt | 每个角色的方法论和行为边界是什么？ | 本文件 §3 各角色定义；完整定义见 Agent Prompt |
 | **L4 任务级技术** | Skill | 特定任务的标准操作流程和模板是什么？ | 本文件 §5 Skill 列表 |
 
 ### 1.3 三类规范载体的定位
 
-**`_common.md`** 是项目宪章——所有 Agent 共享的最小必要约束集。
+**`l2-constraints.md`** 是项目宪章——所有 Agent 共享的最小必要约束集。
 
 **Agent Prompt** 只保留该角色特有的、无法工具化的、需要上下文理解的规范（如 Red-Green-Refactor 方法论、架构一致性检查的关键词选择策略）。
 
@@ -78,13 +78,17 @@ OpenAPI、data-model.md 等架构级文档变更时，须在文件头部维护 `
 | architecture-review.md | `docs/backlog/{epic}/{ft}/` | frozen | 架构评审结论 |
 | test-plan.md | `docs/backlog/{epic}/{ft}/test-cases/` | frozen | 测试计划 |
 | test-report.md | `docs/backlog/{epic}/{ft}/test-cases/` | frozen | P0 门禁依据 |
-| state.md | `docs/backlog/{epic}/{ft}/` | active | 共享状态板 |
+| state.md（feature 级） | `docs/backlog/{epic}/{ft}/state.md` | active（设计阶段） | feature 级共享状态板（Draft → Designed） |
+| state.md（US 级） | `docs/backlog/{epic}/{ft}/{us}/state.md` | active | US 级共享状态板（Designed → Done） |
 | process-review.md | `docs/backlog/{epic}/{ft}/` | Done 后产出，产出后 frozen | 流程复盘（按需） |
 
 **frozen 语义**：
-- **触发**：对应 PR merge 到 main 后，由主 Agent 标记
+
+- **触发**：对应 US 的 PR merge 到 main 后，由主 Agent 标记该 US 为 `Done`
 - **解冻**：发现严重错误需修正时，走变更 PR（须说明影响面），Reviewer 审批
 - **与 git 的关系**：frozen 是逻辑状态，不强制 git tag；重大 milestone 可补 tag
+
+**US 子目录创建时机**：Designer 完成设计、用户审批通过后，由 Designer（或 Orchestrator）为每个 US 创建 `{us-id}/` 子目录和初始 `state.md`。单 US feature 仍遵循此结构。
 
 #### US（用户故事）与 UC（用例）职责边界
 
@@ -111,13 +115,17 @@ docs/
 │   └── {epic-id}/
 │       └── {feature-id}/
 │           ├── feature.md
-│           ├── us-*.md
 │           ├── design.md
+│           ├── state.md              # feature 级状态（Draft → Designed）
+│           ├── us-001-<slug>/
+│           │   ├── state.md          # US 级状态（Designed → Done）
+│           │   ├── us-001-<slug>.md
+│           │   └── test-cases/
+│           │       ├── test-plan.md
+│           │       └── test-report.md
+│           ├── us-002-<slug>/
+│           │   └── ...
 │           ├── architecture-review.md
-│           ├── test-cases/
-│           │   ├── test-plan.md
-│           │   └── test-report.md
-│           ├── state.md
 │           └── process-review.md
 ├── architecture/
 │   ├── c4/                    # C4 模型（L1/L2/L3）
@@ -191,13 +199,22 @@ flowchart LR
 
 **设计要点**：
 
-- `state.md` 是唯一的共享状态源，所有 agent 可读可写
+- `state.md` 采用**两级状态模型**：feature 级（`Draft → Designed`）+ US 级（`Designed → Done`）
+- feature 级 `state.md` 只在设计阶段使用，Designer 完成后不再更新
+- US 级 `state.md` 是 Developer / Tester 的主要工作板，每个 US 独立维护
 - 用户是**仲裁者**（决定 Gate 通过与否），不是**中转站**（不传递消息）
 - Agent 之间不直接通信，通过 `state.md` 和共享目录传递信息
 
 ### 4.2 state.md 共享 Board 规范
 
-`state.md` 的完整 YAML frontmatter schema、字段语义、状态转换规则见 [`_contracts/state-schema.md`](../../.claude/agents/prompts/_contracts/state-schema.md)。以下为 common.md 补充的上下文约定：
+`state.md` 的完整 YAML frontmatter schema、字段语义、状态转换规则见 [`state-schema.md`](./state-schema.md)。以下为 common.md 补充的上下文约定：
+
+**两级状态模型**：
+
+| 层级 | 文件位置 | 状态范围 | 维护者 |
+|------|---------|---------|--------|
+| feature 级 | `docs/backlog/{epic}/{ft}/state.md` | `Draft → Designed` | Designer |
+| US 级 | `docs/backlog/{epic}/{ft}/{us}/state.md` | `Designed → Implementing → Testing → Verified → Done` | Developer / Tester |
 
 **Markdown body 分区**（所有 Agent 遵循同一分区格式）：
 
@@ -212,7 +229,7 @@ flowchart LR
 <!-- 其他需要传递的信息 -->
 ```
 
-> **单点来源原则**：`_contracts/state-schema.md` 与本文档共同定义 state.md 规范。若字段定义冲突，以 `_contracts/state-schema.md` 为准；本文档仅补充 body 分区格式与协作上下文。
+> **单点来源原则**：[`state-schema.md`](./state-schema.md) 与本文档共同定义 state.md 规范。若字段定义冲突，以 `state-schema.md` 为准；本文档仅补充 body 分区格式与协作上下文。
 
 ### 4.3 Agent 更新规则
 
@@ -283,7 +300,7 @@ Skill 属于 **L4 任务级技术**，是 Agent Prompt（L3）中可提取的规
 | 读者 | 文档 | 说明 |
 |------|------|------|
 | 人类（流程总览） | [智能体 Prompt](../../.claude/agents/prompts/) | 完整智能体定义，按角色浏览 |
-| Agent（流程总览） | [`_common.md`](../../.claude/agents/prompts/_common.md) | 项目宪章，所有 Agent 必读 |
+| Agent（流程总览） | [`l2-constraints.md`](./l2-constraints.md) | 项目宪章，所有 Agent 必读 |
 | Designer / Reviewer | [`feature-design`](../../.claude/skills/feature-design/SKILL.md)、[`design-review`](../../.claude/skills/design-review/SKILL.md) Skill | feature.md / design.md 的编写与评审规范 |
 | Developer | [`engineering`](../../.claude/skills/engineering/SKILL.md) Skill | 技术栈编码规范、自检流程、单元测试模板 |
 | Developer / Reviewer | [`code-review`](../../.claude/skills/code-review/SKILL.md) Skill | PR 评审 checklist 与红线 |
