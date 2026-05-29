@@ -23,12 +23,6 @@ node scripts/allocate-id.js <type> <slug>
 - Bug: `Bug: bg-xxx`（额外带 `severity:` 和 `area:`）
 - TechDebt: `TechDebt: td-xxx`
 
-**PR-scoped 任务必须写分支锁：**
-
-1. `git checkout -b` 后：`echo "<branch>" > .git/claude-agent-branch`
-2. 每次关键 git 操作前校验：`git rev-parse --abbrev-ref HEAD`
-3. 任务结束（PR 开完）：`rm -f .git/claude-agent-branch`
-
 **错误分两级：**
 
 - L1：自行修复（lint / typecheck / 单测失败等）
@@ -51,8 +45,6 @@ node scripts/allocate-id.js <type> <slug>
 
 | 场景 | 文件 |
 |------|------|
-| 开 GitHub Issue | [`issue-template.md`](./issue-template.md) |
-| 分支锁协议 | [`branch-lock.md`](./branch-lock.md) |
 | ID 分配详情 | [`id-allocation.md`](./id-allocation.md) |
 | state.md 格式 | [`state-schema.md`](./state-schema.md) |
 | 完成信号格式 | [`orchestration-interface.md`](./orchestration-interface.md) |

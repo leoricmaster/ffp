@@ -39,9 +39,7 @@
 | **L2 硬约束** | 所有 Agent 共享的最小流程规则 | [`l2-constraints.md`](./l2-constraints.md) |
 | **state.md Schema** | YAML frontmatter 标准、两级状态模型 | [`state-schema.md`](./state-schema.md) |
 | **编排完成信号** | `.last-action-summary.md` 格式标准 | [`orchestration-interface.md`](./orchestration-interface.md) |
-| **分支锁协议** | 多 actor 分支竞争防护 | [`branch-lock.md`](./branch-lock.md) |
 | **ID 分配** | ft/td/bg ID 分配脚本使用说明 | [`id-allocation.md`](./id-allocation.md) |
-| **Issue 模板** | 开 GitHub Issue 时的 body 模板 | [`issue-template.md`](./issue-template.md) |
 
 ---
 
