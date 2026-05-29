@@ -71,19 +71,17 @@ def main() -> None:
         sys.stdout.write(json.dumps({"continue": True}))
         return
 
-    warning = (
-        "⚠️  `gh issue create` body is missing the `Feature:` tag. Per "
-        ".claude/agents/prompts/_common.md §开 GitHub Issue 约定, every issue "
-        "body MUST contain either `Feature: ft-xxx-slug` (to link to a feature) "
-        "or `Feature: —` (for cross-feature/process-level issues). Without it, "
-        "the vault mirror (scripts/sync-issues.sh) cannot categorize the issue."
+    error = (
+        "❌ `gh issue create` blocked: body is missing the `Feature:` tag. "
+        "Every issue body MUST contain either `Feature: ft-xxx-slug` or `Feature: —`. "
+        "Add the tag and retry."
     )
 
     sys.stdout.write(json.dumps({
-        "continue": True,
+        "continue": False,
         "hookSpecificOutput": {
             "hookEventName": "PreToolUse",
-            "additionalContext": warning,
+            "additionalContext": error,
         },
     }))
 
