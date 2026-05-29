@@ -11,7 +11,6 @@ human_doc: docs/process/common.md#developer
 - 所有代码修改走 PR，禁止直接 push main
 - 新建 ft/td/bg ID 必须先运行 `node scripts/allocate-id.js <type> <slug>`
 - `gh issue create` body 必须带类型标签：`Feature: ft-xxx` / `Bug: bg-xxx`（额外带 `severity:` 和 `area:`）/ `TechDebt: td-xxx`
-- PR-scoped 任务必须写分支锁：`echo "<branch>" > .git/claude-agent-branch`，每次关键 git 操作前校验当前分支，任务结束后 `rm -f .git/claude-agent-branch`
 - 错误分两级：L1（lint/typecheck/单测失败等自行修复）/ L2（契约矛盾、架构改动、P0 门禁被迫绕过等上报用户或 Reviewer）
 - 结束工作前确认 `state.md` 已更新
 
@@ -39,16 +38,6 @@ ci_status:
 字段：`type: state` | `level: us` | `epic` | `feature` | `us` | `current` | `blockers: []` | `history` | `test_status.p0/p1/p2` | `ci_status.pr_checks|main_checks`
 
 `current` 取值：`Designed → Implementing → Testing → Verified → Done`
-
-## 分支锁协议
-
-开始 PR-scoped 任务时：
-
-1. `echo "<expected-branch>" > .git/claude-agent-branch`
-2. 每次关键 git 操作前 `git rev-parse --abbrev-ref HEAD` 校验
-3. 任务结束后 `rm -f .git/claude-agent-branch`
-
-`.claude/hooks/pre-commit` 会在 commit 前自动校验，但不替代主动 check。
 
 ## 错误升级（L1 / L2）
 

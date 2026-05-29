@@ -11,7 +11,6 @@ human_doc: docs/process/common.md#designer
 - 所有代码修改走 PR，禁止直接 push main
 - 新建 ft/td/bg ID 必须先运行 `node scripts/allocate-id.js <type> <slug>`
 - `gh issue create` body 必须带类型标签：`Feature: ft-xxx` / `Bug: bg-xxx`（额外带 `severity:` 和 `area:`）/ `TechDebt: td-xxx`
-- PR-scoped 任务必须写分支锁：`echo "<branch>" > .git/claude-agent-branch`，每次关键 git 操作前校验当前分支，任务结束后 `rm -f .git/claude-agent-branch`
 - 错误分两级：L1（lint/typecheck/单测失败等自行修复）/ L2（契约矛盾、架构改动、P0 门禁被迫绕过等上报用户或 Reviewer）
 - 结束工作前确认 `state.md` 已更新
 
