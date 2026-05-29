@@ -54,7 +54,6 @@ node scripts/allocate-id.js <type> <slug>
 | 开 GitHub Issue | [`issue-template.md`](./issue-template.md) |
 | 分支锁协议 | [`branch-lock.md`](./branch-lock.md) |
 | ID 分配详情 | [`id-allocation.md`](./id-allocation.md) |
-| 错误升级流程 | [`error-escalation.md`](./error-escalation.md) |
 | state.md 格式 | [`state-schema.md`](./state-schema.md) |
 | 完成信号格式 | [`orchestration-interface.md`](./orchestration-interface.md) |
 | 主 Agent 编排逻辑 | `orchestrator.md`（`.claude/agents/prompts/`） |
