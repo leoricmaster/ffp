@@ -8,7 +8,7 @@
 |------|------|
 | **Orchestrator** | `.claude/agents/prompts/orchestrator.md` |
 | **Sub-Agent** | Designer / Developer / Tester / Reviewer — `.claude/agents/prompts/` |
-| **共享规范** | `.claude/agents/prompts/_contracts/`（state-schema、orchestration-interface 等；已由各 agent prompt 内联，无自动 include） |
+| **共享规范** | `.claude/agents/prompts/_contracts/`（orchestration-interface 等；已由各 agent prompt 内联，无自动 include） |
 | **10 个 Skill** | `.claude/skills/` |
 
 > **Agent Prompt 自包含原则**：Claude Code 的 `Agent` 工具不会自动解析 markdown 链接或加载依赖文件。所有 agent prompt（`orchestrator.md` / `designer.md` / `developer.md` / `reviewer.md` / `tester.md`）均已内联硬约束、状态 Schema 和编排完成信号，无需也不应依赖外部文件自动注入。引用 Skill 时使用完整路径（如 `.claude/skills/engineering/SKILL.md`），由 agent 按需主动读取。

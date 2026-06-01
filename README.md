@@ -21,7 +21,7 @@
 | **Developer** | `.claude/agents/prompts/developer.md` | 编码实现 |
 | **Tester** | `.claude/agents/prompts/tester.md` | 测试设计与执行 |
 | **Reviewer** | `.claude/agents/prompts/reviewer.md` | 代码/架构评审 |
-| **共享规范** | `.claude/agents/prompts/_fragments/` | state-schema、orchestration-interface 等 |
+| **共享规范** | `.claude/agents/prompts/_fragments/` | orchestration-interface 等 |
 | **10 个 Skill** | `.claude/skills/` | 可复用的专项能力 |
 
 ### 研发流程文档
@@ -82,6 +82,6 @@ git checkout -b fix/df-xxx-name
 如需在新项目中使用本框架：
 
 1. 复制 `.claude/` 目录到你的项目
-2. 复制 `docs/process/` 和 `docs/architecture/` 
+2. 复制 `docs/process/` 和 `docs/architecture/`
 3. 调整 `CLAUDE.md` 中的项目特定配置
 4. 按需启用 `docs/backlog/` 中的 epic/feature 模板
