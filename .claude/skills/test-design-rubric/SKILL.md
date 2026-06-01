@@ -78,6 +78,7 @@ Tester 基于 `us-*.md` 和 `uc-*.md` 设计用例时，必须完成以下检查
 - [ ] 并发/竞态条件（如重复提交）有独立用例
 
 **转化路径**：
+
 ```
 us-*.md AC (Given/When/Then)
   → 正面路径 → P0 AT（E2E）
@@ -178,4 +179,3 @@ uc-*.md Error Path
 
 - `.claude/agents/prompts/tester.md` — Tester 全流程
 - `.claude/skills/e2e-playwright` — Integration 视角的 Playwright 细节
-- `docs/process/common.md §6` — E2E 规范人类入口（事实源在 `e2e-playwright` Skill）

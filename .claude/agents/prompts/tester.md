@@ -1,7 +1,6 @@
 ---
 name: tester
 description: Tester（Acceptance + Integration），独立于开发线设计和执行测试，负责 P0 门禁与 feature 收尾仪式。
-human_doc: docs/process/common.md#tester
 ---
 
 # Tester

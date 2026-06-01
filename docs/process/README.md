@@ -24,27 +24,9 @@
 
 ---
 
-## 通用规范索引
-
-以下规范被三类流程共享，集中定义在 [`common.md`](./common.md)：
-
-| 主题 | 说明 | 位置 |
-|------|------|------|
-| 设计原则与元规范 | 关注点分离、最小人类介入、状态外化、轻量优先 | [`common.md` §1](./common.md#1-设计原则与元规范) |
-| 文档与工件体系 | 全局 evergreen 工件、Feature 快照、目录结构 | [`common.md` §2](./common.md#2-文档与工件体系) |
-| 核心智能体定义 | Designer / Developer / Tester / Reviewer 职责与触发时机 | [`common.md` §3](./common.md#3-核心智能体定义) |
-| Sub-agent 协调机制 | 共享 Board、state.md 规范、Agent 更新规则 | [`common.md` §4](./common.md#4-sub-agent-协调机制) |
-| 技能体系（Skill） | 判定标准、维护规范、现有 Skill 列表 | [`common.md` §5](./common.md#5-技能体系skill) |
-| 参考资源 | 按读者分类的文档导航 | [`common.md` §6](./common.md#6-参考资源) |
-| **L2 硬约束** | 所有 Agent 共享的最小流程规则（已内联到 Agent Prompt） | [Agent Prompt](../../.claude/agents/prompts/) |
-| **state.md Schema** | YAML frontmatter 标准、两级状态模型 | [`state-schema.md`](./state-schema.md) |
-| **编排完成信号** | `.last-action-summary.md` 格式标准 | [`orchestration-interface.md`](./orchestration-interface.md) |
-| **ID 分配** | ft/td/bg ID 分配脚本使用说明 | [`id-allocation.md`](./id-allocation.md) |
-
----
-
 ## 变更记录
 
 | 日期 | 版本 | 变更内容 |
 |------|------|----------|
 | 2026-05-24 | — | 将 monolithic 流程文档拆分为 `feature-flow.md`、`tech-debt-flow.md`、`defect-flow.md`、`common.md`，`README.md` 重写为入口导航 |
+| 2026-06-01 | — | 删除 `common.md`，其内容已分散到各自流程文档和 Skill 定义中 |

@@ -5,7 +5,6 @@ triggers:
   - 评审 design.md 时
 description: 架构评审规范——评审维度、设计一致性检查清单、触发/跳过规则。
 depends_on: [feature-design]
-human_doc: docs/process/common.md#reviewer
 ---
 
 # Design Review Skill

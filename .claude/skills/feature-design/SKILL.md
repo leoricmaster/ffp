@@ -7,7 +7,6 @@ triggers:
   - 变更 API 契约时
 description: feature.md 与 design.md 编写规范——模板、US 拆分原则、API 契约变更流程。
 depends_on: [adr-writing]
-human_doc: docs/process/common.md#designer
 ---
 
 # Feature Design Skill

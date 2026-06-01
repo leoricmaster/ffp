@@ -8,7 +8,7 @@ author: AI(Designer)
 # supersededBy: ADR-YYY | path/to/successor.md   # 仅当 status: superseded 时必填
 # relatedFeature: ft-xxx-slug                    # 可选
 tags: [adr]
-# Lifecycle: ADR 本身就是 frozen——status 字段已承担生命周期角色（见 docs/process/common.md），不需要额外 lifecycle: 字段
+# Lifecycle: ADR 本身就是 frozen——status 字段已承担生命周期角色，不需要额外 lifecycle: 字段
 ---
 
 # ADR-XXX: {简短标题}
@@ -42,12 +42,15 @@ tags: [adr]
 ## 影响
 
 ### 积极影响
+
 - {影响1}
 
 ### 消极影响
+
 - {影响1}
 
 ### 需要更新的文档
+
 - [ ] {文档路径}
 
 ## 相关决策

@@ -6,7 +6,6 @@ triggers:
   - 评审 stories 时
 description: Storybook stories 编写规范——文件位置、必写 stories（Default/Filled/Loading/WithErrors）、CDD 分层、Mock 数据、评审检查清单。
 depends_on: [feature-design]
-human_doc: docs/process/common.md#designer
 ---
 
 # Storybook Stories 编写

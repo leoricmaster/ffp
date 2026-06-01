@@ -219,5 +219,4 @@ cd frontend/web && npx playwright test         # CI 模式
 
 ## 相关
 
-- `docs/process/common.md §6` — 人类入口指针（PR-5 之后仅指向本 Skill；事实源在此）
 - `.claude/agents/prompts/tester.md` §Integration（视角）

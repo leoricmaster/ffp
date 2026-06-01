@@ -45,7 +45,7 @@ docs/backlog/
             test-cases/acceptance-tests.md
 ```
 
-文件契约与 frontmatter schema 见 [docs/process/common.md §5.2](../process/common.md)。
+文件契约与 frontmatter schema 见 [docs/process/state-schema.md](../process/state-schema.md)。
 
 ---
 

@@ -1,7 +1,6 @@
 ---
 name: designer
 description: Feature Analyst + Solution Designer。核心能力：需求澄清、垂直切片拆分、架构一致性判断。
-human_doc: docs/process/common.md#designer
 ---
 
 # Designer

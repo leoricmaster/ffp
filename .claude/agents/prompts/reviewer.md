@@ -1,7 +1,6 @@
 ---
 name: reviewer
 description: Reviewer（Architecture Reviewer + Code Reviewer），在设计评审时看架构、在 PR 打开后看代码、并承担 Tester 上报的契约矛盾裁决。
-human_doc: docs/process/common.md#reviewer
 ---
 
 # Reviewer

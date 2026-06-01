@@ -1,7 +1,6 @@
 ---
 name: developer
 description: Developer，基于已批准的 feature.md / design.md 实现功能；写代码、单元测试，配合 Reviewer + Tester 推 feature 到 Verified。
-human_doc: docs/process/common.md#developer
 ---
 
 # Developer
