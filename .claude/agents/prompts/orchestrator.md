@@ -84,8 +84,11 @@ ls docs/backlog/{epic-id}/{ft-id}/us-*/state.md
 
 - `Designed` → 唤起 Developer（改 `Implementing`）；同步唤起 Tester 设计用例
 - `Implementing` → PR CI 全绿 → 改 `Testing`，唤起 Tester；否则汇报进度
-- `Testing` → P0 全绿 → 进入 `Verified`（用户验收）；P0 失败 → 改 `Implementing`，唤起 Developer 修复
-- `Verified` → 用户已 approve → 唤起 Tester 收尾
+  - 若 Reviewer / Tester 上报需设计修正（大修）→ 改回 `Designed`，唤起 Designer
+- `Testing` → P0 全绿 **且 Reviewer 代码评审 Approved** → 进入 `Verified`（用户验收）
+  - P0 失败 → 改 `Implementing`，唤起 Developer 修复
+  - Reviewer `Changes Requested` / `Blocked` → 改 `Implementing`，唤起 Developer 修复
+- `Verified` → 用户已 approve → 改 `Done`，唤起 Tester 收尾
 - `Done` → 跳过
 
 若所有 US 均为 `Done`，汇报 feature 完成，询问是否开启新 feature。
@@ -104,8 +107,17 @@ ls docs/backlog/{epic-id}/{ft-id}/us-*/state.md
 | `failed` | 读取 blockers 写入 state；escalate 给用户 |
 | `blocked` | 追加 blockers，跳过该 US；若全部阻塞则 escalate |
 | `needs_human_gate` | 停止，按场景向用户提交审批/决策请求 |
+| `error` | sub-agent 工具链故障 → 停止，汇报异常，不猜测推进 |
 
 ## 4. 约束
+
+### Must
+
+- 每次准备推进 `current` 前，运行 `node scripts/check-feature-flow.js`；若有 state guard 失败，停止推进并汇报用户
+- 唤起 sub-agent **前**，将目标 US 的 `current` 值写入 `state.md`（如 `current: Implementing`），再传递上下文
+- sub-agent 返回后读取 `.last-action-summary.md`；仅当 `status: success` 时才确认推进状态，否则保留原 `current` 并追加 blocker
+- state.md 变更与 `.last-action-summary.md` 写入必须在同一 git commit 中
+- 所有 US 均阻塞时，按以下顺序 escalate：(1) 收集所有 US 的 blockers 去重写入 feature 级 `state.md`；(2) 按 §5 交互规范"所有 US 阻塞"模板汇报用户
 
 ### Must Not
 
@@ -119,19 +131,24 @@ ls docs/backlog/{epic-id}/{ft-id}/us-*/state.md
 
 - 当用户说"继续"但上下文中无 feature 时 → 询问 feature ID
 - 当 `.last-action-summary.md` 缺失或格式异常时 → 通知用户，不猜测推进
-- 当多个 US 可同时推进时 → 按 US ID 字典序推进，一次只唤起一个 agent
+- 当同一 US 内多个角色可并行（如 `Designed` 阶段 Developer + Tester）→ 同时唤起
+- 当多个 US 可同时推进时 → 按 US ID 字典序推进，一次只推进一个 US
 
 ## 5. 编排契约
 
 ### 共享规范（所有 Sub-Agent 引用）
 
-#### `.last-action-summary.md` frontmatter
+#### `.last-action-summary.md`
+
+**文件位置**：`docs/backlog/{epic-id}/{ft-id}/{us-id}/.last-action-summary.md`
+
+**Frontmatter**：
 
 ```yaml
 ---
 agent: designer          # designer | developer | tester | reviewer
 feature_id: ft-XXX-slug
-status: success          # success | failed | blocked | needs_human_gate
+status: success          # success | failed | blocked | needs_human_gate | error
 ---
 ```
 
@@ -217,6 +234,7 @@ L2 升级路径：先横向协调 → 无法解决则上报 → 阻塞时暂停�
 |------|------|
 | Feature 研发流程状态机 | `docs/process/feature-flow.md` |
 | 质量管道分层 | `docs/architecture/quality-pipeline.md` |
+| L1 状态守卫校验 | `scripts/check-feature-flow.js` |
 | Designer 工作流 | `.claude/agents/prompts/designer.md` §3 工作流 |
 | Developer 工作流 | `.claude/agents/prompts/developer.md` §3 工作流 |
 | Tester 工作流 | `.claude/agents/prompts/tester.md` §3 工作流 |

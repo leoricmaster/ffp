@@ -49,6 +49,18 @@ Tester 有**三个触发时机**，Orchestrator 按状态判断唤起对应阶�
 
 **硬规则**：用 `data-testid` 或稳定的 `id` / `getByRole`；禁用 `waitForTimeout`；每个测试独立清理 localStorage/cookies。
 
+**测试数据策略（本阶段必做）**：
+
+- 列出每个用例需要的初始数据（账号 / 分类 / 已有业务数据）
+- 明确数据来源：seed 脚本（优先）→ fixture → 动态创建
+- 确保测试间数据隔离，禁止测试间共享可变状态
+- 明确测试后清理策略（幂等 / 显式清理 / 独立测试数据库）
+
+**性能与安全用例（Designer 标记影响时）**：
+
+- Designer 在 `feature.md` 中标记性能影响 → 设计至少 1 个 P2 性能基准用例（响应时间 / 大数据量处理）
+- Designer 标记安全影响 → 设计 P1 安全用例（XSS 输入注入、越权访问、敏感数据泄露检查）
+
 ### Phase B: 执行测试（`state.current === "Testing"`）
 
 顺序：`Acceptance → Integration`
@@ -57,6 +69,16 @@ Tester 有**三个触发时机**，Orchestrator 按状态判断唤起对应阶�
 
 - P0 FAILED → **停止**，通知 Developer 修，**重新跑一遍**
 - **BLOCKED ≠ PASS**
+
+**实现与设计矛盾**：若读取 PR diff 后发现实现与 `design.md` / `feature.md` 存在不可调和矛盾（非小幅偏离），按 L2 上报 Reviewer 裁决，暂停测试直到裁决完成。
+
+**探索性测试窗口**：脚本化测试完成后，执行 15–30 分钟不拘泥于 AC 的探索性测试——关注用户可能遇到但设计文档未覆盖的场景。发现的问题按 P1/P2 登记到 `test-report.md`。
+
+**Manual Acceptance 降级**：仅当 AT 因技术限制无法自动化时允许 manual acceptance，必须同时满足：
+
+1. 在 `test-report.md` 中记录「AT 无法自动化的 root cause」
+2. 列出 manual 执行的步骤、预期结果、实际结果
+3. 由 Reviewer 在 PR 中审批确认
 
 执行流程、状态定义、通知模板、test-report.md 编写规范详见 `.claude/skills/test-execution/SKILL.md`。
 
@@ -101,8 +123,19 @@ Tester 有**三个触发时机**，Orchestrator 按状态判断唤起对应阶�
 
 ### When...Then
 
-- 当发现 OpenAPI vs `design.md` 矛盾时 → ping Reviewer 裁决，OpenAPI 向 Design 对齐（除非 Design 本身有逻辑错误）
 - 当 L1 覆盖率 <80% 时 → 作为 P0 门禁前提不通过，上报
+
+### L1 工具级强制（机器自动执行）
+
+以下检查由 CI / 脚本自动阻断，不依赖 Agent 自觉：
+
+| 检查项 | 工具 / 脚本 | 阻断时机 |
+|--------|------------|---------|
+| `test-plan.md` 中每个 AC 至少对应 1 个 P0 用例 | 解析脚本 | PR 阶段 |
+| `test-report.md` 中 BLOCKED 项未标记为 PASS | 解析脚本 | 测试报告生成时 |
+| Playwright 中使用 `waitForTimeout` | ESLint 规则 | 代码提交前 |
+| P0 FAILED | CI workflow | PR 合并前 |
+| Flaky 测试超 2 周未修复 | GitHub Action 定时扫描 | 每日检查 |
 
 ## 5. 编排契约
 
@@ -128,7 +161,7 @@ status: success          # success | failed | blocked | needs_human_gate
 **错误分级**：
 
 - L1（自行修复）：测试环境问题、配置错误
-- L2（上报用户或 Reviewer）：契约矛盾、发现架构问题、P0 门禁被迫绕过
+- L2（上报用户或 Reviewer）：实现与设计矛盾、发现架构问题、P0 门禁被迫绕过
 
 ### 触发条件
 
@@ -144,8 +177,9 @@ status: success          # success | failed | blocked | needs_human_gate
 |------|------|------|
 | state.md（US 级） | `docs/backlog/{epic}/{ft}/{us}/state.md` | 读取当前 US 状态 |
 | feature.md | 同目录 | 需求与 AC |
+| test-plan.md | 同目录 | Phase B 执行依据 |
 | design.md | 同目录 | 技术方案与流程 |
-| OpenAPI | `docs/api/openapi.yaml` | 契约验证 |
+| OpenAPI | `docs/api/openapi.yaml` | API 规范验证 |
 | 代码/PR | GitHub PR | 测试执行阶段读取 |
 
 ### 输出
@@ -172,7 +206,7 @@ status: success          # success | failed | blocked | needs_human_gate
 |------|------|
 | P0 失败 | `status: failed`，通知 Developer 修复，回到 Testing |
 | 测试环境阻塞 | `status: blocked`，记录 blockers，不降级为 PASS |
-| 发现契约矛盾 | ping Reviewer 裁决，暂停直到裁决完成 |
+| 发现实现与设计矛盾 | ping Reviewer 裁决，暂停直到裁决完成 |
 
 ## 6. 参考
 

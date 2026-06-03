@@ -30,7 +30,8 @@ description: 基于已批准的设计实现功能；写代码、单元测试，�
 
 ### Step 2: 实现
 
-按 `design.md` 拆分任务，遵循既有目录结构。若设计偏离需在 PR description 中解释。
+按 `design.md` 拆分任务，遵循既有目录结构。Commit 遵循 Conventional Commits，每个 commit 对应一个独立可编译的变更单元。
+若设计偏离需在 PR description 中解释。
 
 ### Step 3: 单元测试
 
@@ -40,6 +41,7 @@ description: 基于已批准的设计实现功能；写代码、单元测试，�
 2. Green：最少代码让测试通过
 3. Refactor：测试保护下优化
 
+测试数据隔离：测试间不共享可变状态，每个测试独立 setup/teardown。
 不必对每个 getter/setter 套 TDD。本地覆盖率追求 ≥80%，底线 ≥60%。
 
 ### Step 4: 自检
@@ -59,14 +61,22 @@ lint / format / typecheck / test
 4. CI 红 → 本地复现 → 一次性修复 → push → 回到步骤 3
 5. CI 绿 → 更新 `state.md` `ci_status.pr_checks: PASS`
 
-### Step 6: 修复（Tester 打回时）
+### Step 6: 修复（Reviewer / Tester 打回时）
+
+**Reviewer 反馈**：
+
+- 逐条回复每个 comment，确认后标记 resolve
+- 涉及 design.md 变更的，在 PR description 追加"实现阶段设计变更记录"
+- 对 blocking comment 必须修复；对 suggestion 可讨论后说明采纳/拒绝理由
+
+**Tester 反馈**：
 
 | 错误 | 正确 |
 |------|------|
 | 自己宣布"修好了" | 通知 Tester 重跑验证 |
 | 自己跑一遍就当 PASS | 让 Tester 独立验证 |
 
-修完：(a) 记录到 `state.md` history；(b) 通知 Tester；(c) 等 Tester 验证。
+修完：(a) 记录到 `state.md` history；(b) 通知对应角色；(c) 等独立验证。
 
 ## 4. 约束
 
@@ -74,6 +84,8 @@ lint / format / typecheck / test
 
 - 复用现有组件 / 工具函数
 - 关键逻辑先写测试再写实现
+- 所有用户输入必须经过校验 / 转义，禁止直接拼接 SQL / shell 命令 / HTML
+- 涉及权限的逻辑必须显式校验，默认拒绝（deny-by-default）
 - 设计偏离在 PR description 中解释
 - 修复后让 Tester 重跑
 
@@ -87,11 +99,15 @@ lint / format / typecheck / test
 - 合并后不等 main CI 就通知完成
 - push 后立即说"完成了"，不等 CI 结果
 - Code Review 之前合并代码
+- 一个 PR 解决多个独立问题或混入无关变更（如同时修 bug 和格式化）
+- PR diff 超过 400 行或 20 个文件仍不拆分
+- 对已有 open PR force-push（会丢失评审历史）
 
 ### When...Then
 
 - 当设计段 >150 行但未拆 `design.md` → 按 design.md 逐段实现
 - 当 `test-plan.md` 中 P0 用例已产出 → 作为编码输入参考
+- 当实现中发现 design.md 需小幅调整（不影响架构/契约） → 在 PR description 中记录变更点，无需重新走设计审批
 - 当发现 `design.md` 与代码实现有不可调和矛盾 → 按 L2 上报 Reviewer
 
 ## 5. 编排契约
@@ -101,6 +117,13 @@ lint / format / typecheck / test
 **US 级 state.md**（路径：`docs/backlog/{epic}/{ft}/{us}/state.md`）：
 
 - 字段：`type: state` | `level: us` | `epic` | `feature` | `us` | `current: Designed|Implementing|Testing|Verified|Done` | `blockers: []` | `history` | `test_status.p0/p1/p2: N/A|PENDING|PASS|FAIL` | `ci_status.pr_checks|main_checks: N/A|PENDING|PASS|FAIL`
+- `history` 示例：
+
+  ```yaml
+  history:
+    - { timestamp: "2026-06-02T14:00:00Z", from: "Implementing", to: "Testing", reason: "代码实现完成，PR CI 全绿" }
+  ```
+
 - 你更新 `history`、`ci_status`、`test_status`；`current` 由 Orchestrator 统一写入
 
 **`.last-action-summary.md`** frontmatter：

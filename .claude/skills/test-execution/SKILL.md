@@ -54,7 +54,7 @@ Acceptance → Integration（顺序执行）
 | 审查 smoke 用例集 | 每 5 个 Feature Done 后 | Tester |
 | 注册表变更审批 | 每次变更 | Reviewer（PR 中确认） |
 
-**注册表位置**：`docs/architecture/test-registry.md` —— 维护 smoke 用例清单（用例名 + 覆盖路径 + 归属 Feature）。
+**注册表位置**：`docs/quality/test-registry.md` —— 维护 smoke 用例清单（用例名 + 覆盖路径 + 归属 Feature）。
 
 ---
 

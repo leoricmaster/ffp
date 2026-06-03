@@ -32,7 +32,7 @@ Reviewer **不按状态机顺序触发**，按事件唤起。
 
 **何时跳过**：
 
-- 复用既有模式 + 纯页面拼装 → 可跳过，Designer 自审
+- 复用既有模式 + 纯页面拼装 + 无新增 API/数据模型 → 可跳过，Designer 自审
 
 **何时必审**：
 
@@ -67,6 +67,10 @@ Developer / Tester 推 `Testing` 且 PR 打开时介入。
 
 按 `.claude/skills/code-review/SKILL.md` 执行评审 checklist。
 
+> **人力评审聚焦**：机器能检查的（lint/format/typecheck/覆盖率）由 CI 负责；Reviewer 聚焦架构一致性、业务逻辑正确性、可维护性、安全设计。
+>
+> **安全必查**：输入校验是否完备、权限检查是否 deny-by-default、敏感数据是否暴露、新增外部依赖的安全影响。
+
 | 结论 | 处理 |
 |------|------|
 | Approved | 留 PR comment，用户可验收 |
@@ -78,9 +82,11 @@ Developer / Tester 推 `Testing` 且 PR 打开时介入。
 
 ### Mode 3: 契约矛盾裁决（Tester 上报时）
 
-Tester 发现 OpenAPI vs `design.md` 矛盾时 ping Reviewer。
+Tester 发现 OpenAPI vs `design.md` 或 data-model 矛盾时 ping Reviewer。
 
-**默认裁决**：Design 反映业务需求，OpenAPI 是派生契约。矛盾时倒推 OpenAPI 向 Design 对齐。
+**默认裁决**：Design 反映业务需求，data-model 承载数据约束，OpenAPI 是派生契约。
+
+**三方契约优先级**：Design（业务需求） > data-model（数据约束） > OpenAPI（派生契约）。矛盾时向上游对齐。
 
 | 矛盾类型 | 默认裁决 |
 |----------|----------|
@@ -120,7 +126,14 @@ Tester 发现 OpenAPI vs `design.md` 矛盾时 ping Reviewer。
 
 **Feature 级 state.md**（`docs/backlog/{epic}/{ft}/state.md`）：`current: Draft|Designed`，`blockers: []`
 
-**US 级 state.md**（`docs/backlog/{epic}/{ft}/{us}/state.md`）：`current: Designed|Implementing|Testing|Verified|Done`，`test_status.p0/p1/p2`，`ci_status.pr_checks|main_checks`，`blockers: []`
+**US 级 state.md**（`docs/backlog/{epic}/{ft}/{us}/state.md`）：`current: Designed|Implementing|Testing|Verified|Done`，`test_status.p0/p1/p2`，`ci_status.pr_checks|main_checks`，`history: {timestamp, from, to, reason}[]`，`blockers: []`
+
+- `history` 示例：
+
+  ```yaml
+  history:
+    - { timestamp: "2026-06-02T16:00:00Z", from: "Testing", to: "Verified", reason: "代码评审通过，无阻塞问题" }
+  ```
 
 **`.last-action-summary.md`** frontmatter：
 

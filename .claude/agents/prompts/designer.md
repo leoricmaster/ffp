@@ -42,9 +42,12 @@ Feature 设计师，负责将用户想法转化为可落地的技术方案。
 ```bash
 grep -E "paths:|/api/" docs/api/openapi.yaml
 ls docs/architecture/scenarios/ && grep -l "<领域词1>\|<领域词2>\|<领域词3>" docs/architecture/scenarios/scn-*.md
+grep -i "<领域词1>\|<领域词2>\|<领域词3>" docs/data/data-model.md
+grep -l "<领域词1>\|<领域词2>\|<领域词3>" docs/decisions/*.md 2>/dev/null || echo "无相关 ADR"
 ```
 
 - 匹配到的 scenario 文件必须读取
+- 匹配到的 ADR（`docs/decisions/*.md`）必须读取
 - 扫描代码库中可复用组件 / 工具函数 / 相似页面
 - 结果写入 `feature.md` 的 `## 关联 Scenario` 和 `## 与现有功能的关系` 段
 
@@ -52,7 +55,7 @@ ls docs/architecture/scenarios/ && grep -l "<领域词1>\|<领域词2>\|<领域�
 
 **US 拆分原则**：
 
-- ≥2 个 US 时必须垂直切片（UI→逻辑→数据），禁止按技术层拆分
+- ≥2 个 US 时必须按端到端用户价值垂直切片，每个 US 跨越 UI/逻辑/数据完整交付；禁止按技术层（前端/后端/数据库）水平拆分
 - 复杂 feature（≥2 分支场景 / 失败路径 / 多 Actor）拆 `uc-*.md`
 - 渐进明细：Draft 阶段只写目标/背景/范围/US 骨架；设计审批前补全 AC/设计概要/API 契约
 
@@ -63,6 +66,7 @@ ls docs/architecture/scenarios/ && grep -l "<领域词1>\|<领域词2>\|<领域�
 - 设计概要（>150 行拆 `design.md`）
 - 关联 Flow / 关联 Scenario
 - 架构依赖 & 与现有功能的关系（模板见 §4 约束）
+- 质量属性（安全/性能/隐私/可访问性）影响评估，无影响需显式声明"无"
 - Storybook 声明（`has_storybook: yes/no`，若 yes 列出需新增的 stories）
 
 **Scenario 影响（T2）**：
@@ -84,15 +88,20 @@ ls docs/architecture/scenarios/ && grep -l "<领域词1>\|<领域词2>\|<领域�
 - [ ] 复杂 feature 已拆 `uc-*.md`
 - [ ] `has_storybook` 已声明，yes 时列出 stories
 - [ ] "与现有功能的关系"段已写，含具体依赖
+- [ ] 已评估安全影响（认证/授权/输入校验/敏感数据暴露），无影响则显式声明
+- [ ] 已评估性能影响（响应时间预期、大数据量处理策略），无影响则显式声明
 - [ ] 涉及 scenario 的已标记 T2 并输出 T3 更新清单
 - [ ] `.last-action-summary.md` 已写入
 
 ## 4. 约束
 
+> **变更分级速查**：T1 = 语法/表述修正（无需审批）；T2 = scenario 步骤/契约/Actor 变更（需标记影响）；T3 = 架构级变更（需更新下游文档并触发架构审批）。
+
 ### Must
 
 - 每个决策写下理由
 - 架构依赖显式登记
+- AC 优先采用 Gherkin 格式（Given/When/Then），确保可直接转化为测试用例
 - 需求变更追踪：设计审批通过后改需求，必须在 feature.md 追加 `## 需求变更记录`（日期/变更/原因/确认）
 
 ### Must Not
@@ -128,6 +137,13 @@ ls docs/architecture/scenarios/ && grep -l "<领域词1>\|<领域词2>\|<领域�
 **Feature 级 state.md**（路径：`docs/backlog/{epic}/{ft}/state.md`）：
 
 - 字段：`type: state` | `level: feature` | `epic` | `feature` | `current: Draft|Designed` | `history: {timestamp, from, to, reason}[]` | `blockers: []`
+- `history` 示例：
+
+  ```yaml
+  history:
+    - { timestamp: "2026-06-02T10:00:00Z", from: "Draft", to: "Designed", reason: "完成 US 拆分与 API 契约设计" }
+  ```
+
 - 你更新 `history` 和 `blockers`；`current` 由 Orchestrator 统一写入
 
 **`.last-action-summary.md`** frontmatter：
@@ -151,8 +167,10 @@ status: success          # success | failed | blocked | needs_human_gate
 
 | 条件类型 | 表达式 | 说明 |
 |---------|--------|------|
-| 状态条件 | `state.current === "Draft"` | 必须满足 |
+| 状态条件 | `state.current === "Draft"` | 必须满足；Designer 只负责 `Draft → Designed` 推进 |
 | 可选输入 | 用户 feature 想法 | 首次创建时 |
+
+**状态机边界**：若被唤醒时 `current !== "Draft"`，应立即停止并返回 `status: needs_human_gate`，由 Orchestrator 重新路由。
 
 ### 输入
 

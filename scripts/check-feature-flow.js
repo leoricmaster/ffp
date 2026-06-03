@@ -10,6 +10,7 @@
  *   - feature.md frontmatter validation
  *   - feature.md ID registration in Product-Backlog.md
  *   - Required files per state
+ *   - State guards: current state vs field consistency (L1 enforcement)
  */
 
 const fs = require("fs");
@@ -167,6 +168,94 @@ function checkStateFile(filePath) {
   return issues;
 }
 
+function checkStateGuards(filePath, data) {
+  const issues = [];
+  const rel = path.relative(process.cwd(), filePath);
+  const level = data.level;
+  const current = data.current;
+
+  if (!level || !current) return issues;
+
+  // US-level state guards
+  if (level === "us") {
+    switch (current) {
+      case "Implementing": {
+        if (data["ci_status.pr_checks"] === "PASS") {
+          issues.push(
+            `${rel}: current is 'Implementing' but ci_status.pr_checks is 'PASS'; should be 'Testing'`
+          );
+        }
+        break;
+      }
+      case "Testing": {
+        if (data["ci_status.pr_checks"] === "N/A") {
+          issues.push(
+            `${rel}: current is 'Testing' but ci_status.pr_checks is 'N/A'; PR must be opened before Testing`
+          );
+        }
+        if (data["test_status.p0"] === "FAIL") {
+          issues.push(
+            `${rel}: current is 'Testing' but test_status.p0 is 'FAIL'; should revert to 'Implementing'`
+          );
+        }
+        break;
+      }
+      case "Verified": {
+        if (data["test_status.p0"] !== "PASS") {
+          issues.push(
+            `${rel}: current is 'Verified' but test_status.p0 is '${data["test_status.p0"]}'; must be 'PASS'`
+          );
+        }
+        if (data["ci_status.pr_checks"] !== "PASS") {
+          issues.push(
+            `${rel}: current is 'Verified' but ci_status.pr_checks is '${data["ci_status.pr_checks"]}'; must be 'PASS'`
+          );
+        }
+        break;
+      }
+      case "Done": {
+        if (data["ci_status.main_checks"] !== "PASS") {
+          issues.push(
+            `${rel}: current is 'Done' but ci_status.main_checks is '${data["ci_status.main_checks"]}'; must be 'PASS'`
+          );
+        }
+        break;
+      }
+    }
+  }
+
+  // Feature-level state guards
+  if (level === "feature") {
+    if (current === "Designed") {
+      const ftDir = path.dirname(filePath);
+      if (fs.existsSync(ftDir)) {
+        const usDirs = fs.readdirSync(ftDir).filter((d) => d.startsWith("us-"));
+        for (const usDir of usDirs) {
+          const usStatePath = path.join(ftDir, usDir, "state.md");
+          if (!fs.existsSync(usStatePath)) {
+            issues.push(
+              `${rel}: feature current is 'Designed' but ${usDir}/state.md is missing`
+            );
+            continue;
+          }
+          const usContent = fs.readFileSync(usStatePath, "utf-8");
+          const usParsed = parseFrontmatter(usContent);
+          if (usParsed.error) continue;
+          const usCurrent = usParsed.data.current;
+          const validUsStates = ["Designed", "Implementing", "Testing", "Verified", "Done"];
+          if (!validUsStates.includes(usCurrent)) {
+            issues.push(
+              `${rel}: feature current is 'Designed' but ${usDir} current is '${usCurrent}' (must be Designed or later)`
+            );
+          }
+        }
+      }
+    }
+  }
+
+  return issues;
+}
+
 function loadRegistryIds() {
   const ids = new Set();
 
@@ -306,6 +395,11 @@ function main() {
   const stateFiles = findStateFiles(BACKLOG_DIR);
   for (const f of stateFiles) {
     issues.push(...checkStateFile(f));
+    const content = fs.readFileSync(f, "utf-8");
+    const { data, error } = parseFrontmatter(content);
+    if (!error && data) {
+      issues.push(...checkStateGuards(f, data));
+    }
   }
 
   // Check feature.md files

@@ -104,18 +104,6 @@ describe('ft-001-create: 新增收入记录', () => {
     await expect(page.getByText('提交成功')).toBeVisible({ timeout: 5000 });
   });
 
-  // ===== CT (Contract) =====
-  test('CT-001: API 契约验证', async ({ request }) => {
-    const response = await request.post(`${API_BASE_URL}/transactions`, {
-      data: {
-        type: 'INCOME',
-        amount: 5000,
-        transactionDate: '2026-04-16',
-        categoryId: 'cat-1-1'
-      }
-    });
-    expect(response.status()).toBe(201);
-  });
 });
 ```
 
@@ -159,15 +147,7 @@ test.describe('@smoke', () => {
 - [ ] 测试独立；每个测试用唯一数据
 - [ ] 核心路径已标记 `@smoke`（如需）
 
-## 8. 优先级定义
-
-| 优先级 | 定义 | 必须覆盖？ |
-|-------|------|----------|
-| P0 | 核心 CRUD 流程 | ✅ 必须 |
-| P1 | 重要边界验证（金额、日期） | ✅ 应该 |
-| P2 | 异常（网络断、并发） | 尽量 |
-
-## 9. 测试数据约定
+## 8. 测试数据约定
 
 **测试账号**：`test@example.com` / `password123`（seed 提供）
 **分类测试 ID**：`cat-1-1`（基本工资）
@@ -189,7 +169,7 @@ curl -s http://localhost:8080/api/v1/auth/login \
   -d '{"email":"test@example.com","password":"password123"}'
 ```
 
-## 10. 自动化能力评估
+## 9. 自动化能力评估
 
 | 测试类型 | 工具 | 可行性 |
 |---------|------|--------|
@@ -197,10 +177,10 @@ curl -s http://localhost:8080/api/v1/auth/login \
 | UI 布局 | Playwright 截图对比 | ⚠️ 维护成本高 |
 | 二级分类联动 | Playwright 点击流程 | ✅ |
 | 连续录入模式 | Playwright E2E | ✅ |
-| API 契约 | 直接 HTTP 调用 | ✅ |
+| API 验证 | 直接 HTTP 调用 | ✅ |
 | 用户完整流程 | Playwright E2E | ✅ |
 
-## 11. 环境配置
+## 10. 环境配置
 
 | 场景 | 地址 / 命令 |
 |------|-----------|
@@ -209,7 +189,7 @@ curl -s http://localhost:8080/api/v1/auth/login \
 | Prism mock 备选 | `npx prism mock docs/architecture/api/openapi.yaml --port 8088` |
 | Mock 模式前端 | `.env.mock` 里 `VITE_API_BASE_URL=http://127.0.0.1:4010` |
 
-## 12. Playwright 安装 & 运行
+## 11. Playwright 安装 & 运行
 
 ```bash
 npx playwright install chromium
