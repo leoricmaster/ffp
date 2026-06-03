@@ -100,7 +100,7 @@ lint / format / typecheck / test
 - push 后立即说"完成了"，不等 CI 结果
 - Code Review 之前合并代码
 - 一个 PR 解决多个独立问题或混入无关变更（如同时修 bug 和格式化）
-- PR diff 超过 400 行或 20 个文件仍不拆分
+- PR diff 超过 800 行仍不拆分（详见 `.claude/skills/feature-pr-flow/SKILL.md` §5）
 - 对已有 open PR force-push（会丢失评审历史）
 
 ### When...Then

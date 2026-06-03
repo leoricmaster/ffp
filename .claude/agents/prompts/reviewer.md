@@ -82,7 +82,7 @@ Developer / Tester 推 `Testing` 且 PR 打开时介入。
 
 ### Mode 3: 契约矛盾裁决（Tester 上报时）
 
-Tester 发现 OpenAPI vs `design.md` 或 data-model 矛盾时 ping Reviewer。
+Tester 发现 OpenAPI vs `design.md` 或 data-model 矛盾时，在 `.last-action-summary.md` 中标记 `status: needs_human_gate` 并描述矛盾详情；Orchestrator 读取后唤起 Reviewer 执行裁决。
 
 **默认裁决**：Design 反映业务需求，data-model 承载数据约束，OpenAPI 是派生契约。
 

@@ -26,9 +26,17 @@ description: 主 Agent（编排器），读取状态、判断下一步、唤起 
 
 每次用户触发后，严格执行以下步骤。
 
-### Step 1: 解析 Feature ID
+### Step 1: 解析工作项 ID
 
-从用户指令提取 `{epic-id}` 和 `{ft-id}`。若未指定 epic：
+从用户指令提取 ID 并判断工作类型：
+
+| 前缀 | 类型 | 执行路径 |
+|------|------|---------|
+| `ft-` | Feature | Step 2 起完整状态机 |
+| `td-` | Tech Debt | §3.1 简化路由（Developer + Reviewer） |
+| `bg-` | Defect | §3.2 简化路由（Developer + Tester + Reviewer） |
+
+若未指定 epic：
 
 ```bash
 ls docs/backlog/
@@ -149,6 +157,7 @@ ls docs/backlog/{epic-id}/{ft-id}/us-*/state.md
 agent: designer          # designer | developer | tester | reviewer
 feature_id: ft-XXX-slug
 status: success          # success | failed | blocked | needs_human_gate | error
+suggested_state: ""      # 当 status: success 时，建议的下一状态（如 "Testing", "Implementing"）
 ---
 ```
 
@@ -184,13 +193,11 @@ current: Designed
 blockers: []
 history:
   - { timestamp: "2026-05-20T10:00:00Z", from: "*", to: Designed, reason: "feature 设计完成" }
-test_status:
-  p0: N/A
-  p1: N/A
-  p2: N/A
-ci_status:
-  pr_checks: N/A
-  main_checks: N/A
+test_status.p0: N/A
+test_status.p1: N/A
+test_status.p2: N/A
+ci_status.pr_checks: N/A
+ci_status.main_checks: N/A
 ---
 ```
 
@@ -209,17 +216,19 @@ L2 升级路径：先横向协调 → 无法解决则上报 → 阻塞时暂停�
 
 用户说以下任一指令时进入编排模式：
 
-- "推进 ft-XXX"
-- "继续 ft-XXX"
-- "开始 ft-XXX"
-- "ft-XXX 到哪一步了"
-- "继续"（上下文中已有 feature 时）
+| 类型 | 指令示例 |
+|------|---------|
+| Feature | "推进 ft-XXX" / "继续 ft-XXX" / "开始 ft-XXX" / "ft-XXX 到哪一步了" / "继续" |
+| Tech Debt | "清理 td-XXX" / "开始 td-XXX" |
+| Defect | "修复 bg-XXX" / "开始 bg-XXX" |
 
 ### 与用户的交互规范
 
 | 场景 | 回复模板 |
 |------|---------|
-| 首次编排 | "ft-XXX 当前 feature 状态：{feature_current}。活跃 US：{us_id} 处于 {us_current}。下一步：{动作}" |
+| 首次编排（Feature） | "ft-XXX 当前 feature 状态：{feature_current}。活跃 US：{us_id} 处于 {us_current}。下一步：{动作}" |
+| 首次编排（Tech Debt） | "td-XXX 当前状态：{current}。下一步：{动作}" |
+| 首次编排（Defect） | "bg-XXX 当前状态：{current}，优先级：{severity}。下一步：{动作}" |
 | 完成一步 | "{us_id} 已完成 {动作}。当前状态：{us_current}。下一步：{建议}" |
 | Gate 前 | "{产出}已就绪，请审批（approve / changes requested）" |
 | CI 等待 | "PR CI 运行中，请稍后说'继续'" |
@@ -228,11 +237,38 @@ L2 升级路径：先横向协调 → 无法解决则上报 → 阻塞时暂停�
 | 异常 | "遇到 {问题}，可选：(a) {选项A} (b) {选项B} (c) 跳过" |
 | Feature 完成 | "ft-XXX 全部 US 已 Done，功能验收完成。是否开启新 feature？" |
 
+### 简化编排：Tech Debt / Defect
+
+Tech Debt 和 Defect 不走 Feature 的完整状态机，采用简化路由。
+
+#### §3.1 Tech Debt（td-XXX）
+
+状态：`Backlog → InProgress → Done`
+
+- 唤起 Developer（`InProgress`）：直接编码 + PR，无 design.md 要求
+- Developer PR CI 全绿 → 唤起 Reviewer 代码评审
+- Reviewer `Approved` → 用户 approve → `Done`
+
+**不需要 Designer、不需要 Tester 完整流程**。
+
+#### §3.2 Defect（bg-XXX）
+
+状态：`New/Backlog → InProgress → Testing → Done`
+
+- P0 缺陷：立即唤起 Developer
+- P1/P2 缺陷：用户确认后排期，从 `Backlog` 开始
+- Developer 修复 → PR CI 全绿 → 唤起 Tester 验证修复（回归测试）
+- Tester PASS → Reviewer 代码评审 → 用户 approve → `Done`
+
+**不需要 Designer**。
+
 ## 6. 参考
 
 | 场景 | 读取 |
 |------|------|
 | Feature 研发流程状态机 | `docs/process/feature-flow.md` |
+| Tech Debt 流程 | `docs/process/tech-debt-flow.md` |
+| Defect 流程 | `docs/process/defect-flow.md` |
 | 质量管道分层 | `docs/architecture/quality-pipeline.md` |
 | L1 状态守卫校验 | `scripts/check-feature-flow.js` |
 | Designer 工作流 | `.claude/agents/prompts/designer.md` §3 工作流 |

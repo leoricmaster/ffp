@@ -70,7 +70,11 @@ Tester 有**三个触发时机**，Orchestrator 按状态判断唤起对应阶�
 - P0 FAILED → **停止**，通知 Developer 修，**重新跑一遍**
 - **BLOCKED ≠ PASS**
 
-**实现与设计矛盾**：若读取 PR diff 后发现实现与 `design.md` / `feature.md` 存在不可调和矛盾（非小幅偏离），按 L2 上报 Reviewer 裁决，暂停测试直到裁决完成。
+**实现与设计矛盾**：若读取 PR diff 后发现实现与 `design.md` / `feature.md` 存在不可调和矛盾（非小幅偏离）：
+
+1. 在 `.last-action-summary.md` 中标记 `status: needs_human_gate`，描述矛盾详情
+2. Orchestrator 读取后唤起 Reviewer 执行契约裁决
+3. 暂停测试直到裁决完成
 
 **探索性测试窗口**：脚本化测试完成后，执行 15–30 分钟不拘泥于 AC 的探索性测试——关注用户可能遇到但设计文档未覆盖的场景。发现的问题按 P1/P2 登记到 `test-report.md`。
 
