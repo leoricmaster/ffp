@@ -242,4 +242,4 @@ gh pr checks <N>
 
 - `docs/process/feature-flow.md` §1.6 — PR 规范
 - `.claude/agents/prompts/developer.md` §PR 通知模板
-- `memory/feedback_pr_mandatory.md`（在 ~/.claude/projects/.../memory/） — user feedback
+- `memory/feedback_delete-branch.md`（在 ~/.claude/projects/.../memory/） — PR 合并后删除分支

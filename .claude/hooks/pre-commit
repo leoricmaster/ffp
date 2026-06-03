@@ -35,7 +35,8 @@ if [ -f "$LOCK" ]; then
   3. 若确实要在 $CURRENT 上 commit：
      rm $LOCK && git commit ...
 
-详见 .claude/agents/prompts/_common.md §分支锁协议。
+锁文件在 .git/ 下不会被追踪，也不会污染 working tree；被 `git clean` 保留。
+锁被遗忘时直接 `rm .git/claude-agent-branch` 即可解除。
 EOF
     exit 1
   fi

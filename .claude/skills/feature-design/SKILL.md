@@ -70,7 +70,7 @@ Frontmatter 必填：`type/id/epic/title/priority/owner/created`，禁止 `statu
 
 ## API 契约变更流程
 
-1. 先更新 `docs/architecture/api/openapi.yaml`
+1. 先更新 `docs/api/openapi.yaml`
 2. 评估向后兼容性：
    - 新增可选字段 / 新增枚举值
    - 新增必填 / 删字段 / 改类型 / 删枚举值（必须触发架构审批 Gate）

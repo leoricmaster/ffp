@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PreToolUse Bash hook — warn when `gh issue create` body lacks `Feature:` tag.
+"""PreToolUse Bash hook — block when `gh issue create` body lacks `Feature:` tag.
 
 The vault mirror (scripts/sync-issues.sh) needs `Feature: ft-xxx-slug` (or
 `Feature: —` for cross-feature/process-level issues) in every issue body so
@@ -8,18 +8,18 @@ this tag produces orphaned issues that break the _home.md "Open by feature"
 panel.
 
 Input  (stdin) : JSON Bash tool call payload from Claude Code.
-Output (stdout): JSON. `{"continue": true}` lets the call proceed; setting
-                 hookSpecificOutput.additionalContext injects a warning that
-                 surfaces on the agent's next turn. Never blocks.
+Output (stdout): JSON. `{"continue": true}` lets the call proceed.
+                 Missing Feature tag → `{"continue": false}` blocks the call
+                 and surfaces a warning on the agent's next turn.
 
-Match rule: use shlex to tokenize the command. Only warn when `gh`, `issue`,
+Match rule: use shlex to tokenize the command. Only match when `gh`, `issue`,
 `create` appear as three CONSECUTIVE tokens — i.e. as the actual command
 invocation. Embedded `gh issue create` in a body string / markdown table /
 PR description never appears as separate tokens after shlex splits the
 quoted argument, so it won't false-positive.
 
 If shlex parsing fails (e.g. very complex shell syntax with heredocs not
-inside quotes), pass through silently — the hook is advisory, not a gate.
+inside quotes), pass through silently — fail-open for complex syntax.
 """
 
 import json

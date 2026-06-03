@@ -6,12 +6,35 @@
  * feature-flow state machine defined in docs/process/.
  *
  * Usage:
- *   node scripts/orchestrator-state-machine.js --us-path docs/backlog/epic-XXX/ft-XXX/us-XXX
+ *   node scripts/orchestrator-state-machine.js --us-path docs/backlog/epic-XXX/ft-XXX/us-XXX/state.md
  *
  * Exit codes:
  *   0 - success (output is valid JSON)
  *   1 - input error (missing args, file not found, parse error)
  *   2 - state machine violation (should never happen if check-feature-flow.js passes)
+ *
+ * --- Output Schema ---
+ * {
+ *   "current": string,        // Current state from state.md
+ *   "action": string,         // One of: invoke_agent | transition | revert | wait | skip |
+ *                             //         needs_external_check | needs_human_gate | error | escalate
+ *   "next_state": string|null, // Target state for transition/revert (null for other actions)
+ *   "invoke": string[]|null,  // Agent(s) to invoke (e.g., ["developer"], ["tester"])
+ *   "reason": string,         // Human-readable explanation
+ *   "blockers": string[],     // Blocking issues preventing progression
+ *   "warnings": string[]      // Non-blocking warnings
+ * }
+ *
+ * Action semantics (matching orchestrator.md §Step 5):
+ *   invoke_agent     - Call agent(s), do NOT change state (Orchestrator writes state before invoke)
+ *   transition       - Advance to next_state, then invoke agent(s)
+ *   revert           - Roll back to next_state, then invoke agent(s)
+ *   wait             - Waiting for external event (CI, test results)
+ *   skip             - Skip this US (has blockers)
+ *   needs_external_check - Orchestrator must perform L2 check (e.g., read PR review status)
+ *   needs_human_gate - Stop and ask user for approval/decision
+ *   error            - Unexpected state or internal error
+ *   escalate         - CI failure in Implementing state, escalate to user
  */
 
 const fs = require("fs");

@@ -134,7 +134,7 @@ Reviewer 不直接修改 state.md，通过评审结论影响状态流转。
 | `Changes Requested` | 阻塞，目标 US 回到 `Implementing` |
 | `Blocked` | 严重阻塞，escalate 给用户 |
 
-非法 state 写入由 `scripts/check-feature-flow.js` 在提交前拦截。
+非法 state 写入由 `scripts/check-feature-flow.js` 在 Stop hook 中拦截（会话结束时检查）。
 
 **`.last-action-summary.md`** frontmatter：
 

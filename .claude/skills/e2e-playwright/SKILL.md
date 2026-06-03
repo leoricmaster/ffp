@@ -147,7 +147,7 @@ test.describe('@smoke', () => {
 - [ ] 测试独立；每个测试用唯一数据
 - [ ] 核心路径已标记 `@smoke`（如需）
 
-## 8. 测试数据约定
+## 9. 测试数据约定
 
 **测试账号**：`test@example.com` / `password123`（seed 提供）
 **分类测试 ID**：`cat-1-1`（基本工资）
@@ -186,7 +186,7 @@ curl -s http://localhost:8080/api/v1/auth/login \
 |------|-----------|
 | 后端 API | `http://localhost:8080` |
 | 前端 dev | `http://localhost:3000` |
-| Prism mock 备选 | `npx prism mock docs/architecture/api/openapi.yaml --port 8088` |
+| Prism mock 备选 | `npx prism mock docs/api/openapi.yaml --port 8088` |
 | Mock 模式前端 | `.env.mock` 里 `VITE_API_BASE_URL=http://127.0.0.1:4010` |
 
 ## 11. Playwright 安装 & 运行
