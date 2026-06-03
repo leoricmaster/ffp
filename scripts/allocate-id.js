@@ -2,18 +2,18 @@
 /**
  * ID Allocation Script
  *
- * Allocates ft/td/bg IDs with conflict checking against the registry and repository.
+ * Allocates ft/td/de IDs with conflict checking against the registry and repository.
  *
  * Usage:
  *   node scripts/allocate-id.js <type> <slug>
  *
- *   <type>: ft | td | bg
+ *   <type>: ft | td | de
  *   <slug>: kebab-case short description
  *
  * Examples:
  *   node scripts/allocate-id.js ft create-income
  *   node scripts/allocate-id.js td openapi-categories
- *   node scripts/allocate-id.js bg login-redirect-loop
+ *   node scripts/allocate-id.js de login-redirect-loop
  */
 
 const fs = require("fs");
@@ -22,11 +22,11 @@ const { execSync } = require("child_process");
 
 const REGISTRY_PATH = path.join(__dirname, "..", "docs", "backlog", "Product-Backlog.md");
 
-const VALID_TYPES = ["ft", "td", "bg"];
+const VALID_TYPES = ["ft", "td", "de"];
 const TYPE_LABELS = {
   ft: "Feature",
   td: "Tech Debt",
-  bg: "Bug",
+  de: "Defect",
 };
 
 function logInfo(msg) {
@@ -66,7 +66,7 @@ function parseRegistry() {
   }
 
   const content = fs.readFileSync(REGISTRY_PATH, "utf-8");
-  const counters = { ft: 0, td: 0, bg: 0 };
+  const counters = { ft: 0, td: 0, de: 0 };
 
   for (const type of VALID_TYPES) {
     // Match rows like: | `ft` | Feature | 3 |  or  | ft | Tech Debt | 0 |
@@ -100,7 +100,7 @@ function updateRegistry(type, nextNum) {
 function checkRepositoryConflict(type, proposedId) {
   try {
     const result = execSync(
-      `grep -r "${proposedId}" /Users/lancer/Codes/ffp --include="*.md" --include="*.ts" --include="*.tsx" --include="*.js" --include="*.yaml" -l 2>/dev/null | grep -v "node_modules" | grep -v ".git"`,
+      `grep -r "${proposedId}" "${REPO_ROOT}" --include="*.md" --include="*.ts" --include="*.tsx" --include="*.js" --include="*.yaml" -l 2>/dev/null | grep -v "node_modules" | grep -v ".git"`,
       { encoding: "utf-8", maxBuffer: 10 * 1024 * 1024 }
     );
 

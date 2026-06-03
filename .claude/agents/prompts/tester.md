@@ -35,31 +35,32 @@ Tester 有**三个触发时机**，Orchestrator 按状态判断唤起对应阶�
 
 可与 Developer 并行启动。
 
-**Acceptance 视角**：
+**依据与产出**：
 
-- 依据：`feature.md` 的 AC + `us-*.md`
-- 产出：AT 用例，归入 `test-plan.md`
-- 优先级：P0 = 核心 AC；P1 = 重要；P2 = 边界/异常
+| 视角 | 依据 | 产出 |
+|------|------|------|
+| Acceptance | `feature.md` 的 AC + `us-*.md` | AT 用例，归入 `test-plan.md` |
+| Integration | `design.md` 端到端流程 + AC | IT 用例（含 Playwright E2E），归入 `test-plan.md` |
 
-**Integration 视角**：
+**执行规范**：
 
-- 依据：`design.md` 端到端流程 + AC
-- 产出：IT 用例（含 Playwright E2E）
-- 规范见 `.claude/skills/e2e-playwright/SKILL.md`
+- 用例设计：按 `.claude/skills/test-design-rubric/SKILL.md`（P0/P1/P2 优先级、AC→用例覆盖矩阵、边界值清单、AT/IT 两视角分工）
+- E2E 写法：按 `.claude/skills/e2e-playwright/SKILL.md`（selector 策略、data-testid、等待策略）
 
-**硬规则**：用 `data-testid` 或稳定的 `id` / `getByRole`；禁用 `waitForTimeout`；每个测试独立清理 localStorage/cookies。
-
-**测试数据策略（本阶段必做）**：
+**本阶段必做**：
 
 - 列出每个用例需要的初始数据（账号 / 分类 / 已有业务数据）
 - 明确数据来源：seed 脚本（优先）→ fixture → 动态创建
 - 确保测试间数据隔离，禁止测试间共享可变状态
 - 明确测试后清理策略（幂等 / 显式清理 / 独立测试数据库）
 
-**性能与安全用例（Designer 标记影响时）**：
+**性能与安全用例**：
 
 - Designer 在 `feature.md` 中标记性能影响 → 设计至少 1 个 P2 性能基准用例（响应时间 / 大数据量处理）
-- Designer 标记安全影响 → 设计 P1 安全用例（XSS 输入注入、越权访问、敏感数据泄露检查）
+- 无论 Designer 是否标记，以下场景必须设计 P1 安全用例：
+  - 涉及用户输入（表单 / 查询参数 / 文件上传）→ XSS / SQL 注入 / 路径遍历
+  - 涉及权限控制（角色 / 资源访问）→ 越权访问 / 水平越权 / 垂直越权
+  - 涉及敏感数据（密码 / token / 个人信息）→ 敏感数据泄露 / 日志脱敏
 
 ### Phase B: 执行测试（`state.current === "Testing"`）
 
@@ -84,7 +85,7 @@ Tester 有**三个触发时机**，Orchestrator 按状态判断唤起对应阶�
 2. 列出 manual 执行的步骤、预期结果、实际结果
 3. 由 Reviewer 在 PR 中审批确认
 
-执行流程、状态定义、通知模板、test-report.md 编写规范详见 `.claude/skills/test-execution/SKILL.md`。
+执行流程、状态定义、通知模板、test-report.md 编写规范、Flaky 测试处理详见 `.claude/skills/test-execution/SKILL.md`。
 
 ### Phase C: 收尾仪式（`state.current === "Verified"`，用户 PR approve 后）
 
@@ -94,20 +95,9 @@ Tester 有**三个触发时机**，Orchestrator 按状态判断唤起对应阶�
 4. **knowledge-summary.md**（按需）：真有复用资产 / 新债务 / 架构决策才写
 5. **新 Tech Debt 登记**（如有）：调用 Skill `id-allocation`，登记到 GitHub Issues（标签 `type:tech-debt` + `debt:active`）
 
-### Flaky 测试管理
-
-**定义**：同一测试在相同代码下，无代码变更时连续 3 次运行出现通过/失败交替。
-
-**处理**：
-
-- 立即标记：`test.fixme()` 跳过
-- 创建 Tech Debt 项：记录测试名 + 失败模式 + 最后观察时间
-- 优先修复：下一个 Tech Debt 清理周期内修复
-- **硬规则**：连续 2 周未修复的 flaky 测试，强制删除或重写
-
-追踪清单：GitHub Issues（标签 `type:tech-debt` + `debt:active` + `flaky-test`）
-
 ## 4. 约束
+
+> **错误分级**：L1 = 自行修复（测试环境、配置错误）；L2 = 上报用户或 Reviewer（契约矛盾、架构问题、P0 门禁被迫绕过）。
 
 ### Must
 
@@ -125,13 +115,9 @@ Tester 有**三个触发时机**，Orchestrator 按状态判断唤起对应阶�
 - [L2] 用 mock 绕过阻塞
 - [L2] 走 manual acceptance 但不写 AT 无法自动化的 root cause
 
-### When...Then
-
-（无特定条件——按工作流阶段执行）
-
 ## 5. 编排契约
 
-### 自维护状态规范（精简）
+### 自维护状态规范
 
 **US 级 state.md**（路径：`docs/backlog/{epic}/{ft}/{us}/state.md`）：
 
@@ -144,7 +130,9 @@ Tester 有**三个触发时机**，Orchestrator 按状态判断唤起对应阶�
 ---
 agent: tester
 feature_id: ft-XXX-slug
+us: us-XXX-slug
 status: success          # success | failed | blocked | needs_human_gate | error
+suggested_state: ""      # 当 status: success 时，建议的下一状态（如 "Verified"）
 ---
 ```
 
@@ -204,6 +192,6 @@ status: success          # success | failed | blocked | needs_human_gate | error
 
 | 场景 | 读取 |
 |------|------|
-| 测试执行流程、状态定义、报告模板 | `.claude/skills/test-execution/SKILL.md` |
+| 测试用例设计规范 | `.claude/skills/test-design-rubric/SKILL.md` |
+| 测试执行流程、状态定义、报告模板、Flaky 处理 | `.claude/skills/test-execution/SKILL.md` |
 | E2E 规范 | `.claude/skills/e2e-playwright/SKILL.md` |
-| 测试设计 rubric | `.claude/skills/test-design-rubric/SKILL.md` |

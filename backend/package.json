@@ -2,13 +2,16 @@
   "name": "ffp-backend",
   "version": "1.0.0",
   "description": "FFP 后端服务",
-  "main": "dist/app.js",
+  "main": "dist/server.js",
   "scripts": {
-    "dev": "echo 'No source code yet. Add src/ and configure entry point.'",
-    "build": "echo 'No source code yet.'",
-    "start": "echo 'No source code yet.'",
-    "lint": "echo 'No source code yet.'",
-    "format": "echo 'No source code yet.'"
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "lint": "eslint src --ext .ts",
+    "format": "eslint src --ext .ts --fix",
+    "typecheck": "tsc --noEmit",
+    "test": "jest",
+    "test:coverage": "jest --coverage"
   },
   "keywords": [
     "finance",
@@ -23,10 +26,16 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@types/jest": "^29.5.14",
     "@types/node": "^20.19.27",
+    "@types/supertest": "^6.0.2",
     "@typescript-eslint/eslint-plugin": "^7.18.0",
     "@typescript-eslint/parser": "^7.18.0",
     "eslint": "^8.57.1",
+    "jest": "^29.7.0",
+    "supertest": "^7.0.0",
+    "ts-jest": "^29.2.5",
+    "tsx": "^4.19.2",
     "typescript": "^5.3.3"
   }
 }

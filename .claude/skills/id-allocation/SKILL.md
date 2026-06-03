@@ -34,10 +34,6 @@ node scripts/allocate-id.js de <slug>
 
 注册表写 `ft` 最大 003，但仓库里已有 `ft-004` 引用 → 脚本报错，要求人工修正注册表后重试。
 
-## 单人使用说明
-
-单人 + 单实例无并发冲突。若未来并行多 session，需加文件锁。
-
 ## GitHub Issue 标签规则
 
 分配 ID 后创建 Issue 时，body 必须带类型标签：

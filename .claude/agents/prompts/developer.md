@@ -45,31 +45,22 @@ description: 基于已批准的设计实现功能；写代码、单元测试，�
 测试数据隔离：测试间不共享可变状态，每个测试独立 setup/teardown。
 不必对每个 getter/setter 套 TDD。覆盖率门槛遵循 `.claude/skills/engineering/SKILL.md`。
 
-### Step 3.5: Storybook（条件触发）
+### Step 4: Storybook（条件触发）
 
-当 `feature.md` 声明 `has_storybook: yes` 时：
+当 `feature.md` 声明 `has_storybook: yes` 时，按 `.claude/skills/storybook-authoring/SKILL.md` 编写 `.stories.tsx`。
 
-1. 按 `.claude/skills/storybook-authoring/SKILL.md` 编写 `.stories.tsx`
-2. 必写状态：Default / Filled / Loading / WithErrors（列表组件加 Empty，移动端加 Mobile）
-3. Mock 数据从 `@/mocks` 导入，不在 stories 里硬编码
-4. 本地验证：`cd frontend/web && npm run storybook`，确认所有 stories 无 TS 错误、四种状态可视
+### Step 5: 自检
 
-### Step 4: 自检
-
-```bash
-# 按 .claude/skills/engineering/SKILL.md 执行
-lint / format / typecheck / test
-```
-
+按 `.claude/skills/engineering/SKILL.md` 执行：lint / format / typecheck / test。
 全部本地通过后再 push。
 
-### Step 5: PR 与等待
+### Step 6: PR 与等待
 
 遵循 `.claude/skills/feature-pr-flow/SKILL.md` 完成：分支推送 → PR 开单 → CI 等待 → 状态更新。
 
-CI 绿后更新 `state.md` `ci_status.pr_checks: PASS`，等待 Reviewer 与 Tester 并行介入。
+CI 绿后更新 `state.md` `ci_status.pr_checks: PASS`，等待 Reviewer 与 Tester 串行介入（Reviewer 代码评审先 → Tester P0 测试后）。
 
-### Step 6: 修复（Reviewer / Tester 打回时）
+### Step 7: 修复（Reviewer / Tester 打回时）
 
 **Reviewer 反馈**：
 
@@ -102,7 +93,7 @@ CI 绿后更新 `state.md` `ci_status.pr_checks: PASS`，等待 Reviewer 与 Tes
 - 跳过单元测试 / 自己跑一遍就当 PASS
 - 把环境问题甩给 Tester
 - Tester 打回不做独立验证就改两行说"修好了"
-- PR CI 全绿就合并，不等用户验收
+- 在 PR CI 全绿后不等用户验收就自行合并
 - 合并后不等 main CI 就通知完成
 - push 后立即说"完成了"，不等 CI 结果
 
@@ -127,7 +118,9 @@ CI 绿后更新 `state.md` `ci_status.pr_checks: PASS`，等待 Reviewer 与 Tes
 ---
 agent: developer
 feature_id: ft-XXX-slug
+us: us-XXX-slug
 status: success          # success | failed | blocked | needs_human_gate | error
+suggested_state: ""      # 当 status: success 时，建议的下一状态（如 "Testing"）
 ---
 ```
 
@@ -185,9 +178,7 @@ status: success          # success | failed | blocked | needs_human_gate | error
 
 | 场景 | 读取 |
 |------|------|
-| 编码规范、目录结构、自检命令 | `.claude/skills/engineering/SKILL.md` |
-| E2E 配合（data-testid） | `.claude/skills/engineering/SKILL.md` |
-| E2E 写作规范 | `.claude/skills/e2e-playwright/SKILL.md` |
+| 编码规范、目录结构、自检命令、单元测试模板 | `.claude/skills/engineering/SKILL.md` |
 | Storybook 编写 | `.claude/skills/storybook-authoring/SKILL.md` |
-| PR 格式 | `.claude/skills/feature-pr-flow/SKILL.md` |
+| PR 工作流 | `.claude/skills/feature-pr-flow/SKILL.md` |
 | 质量管道分层 | `docs/architecture/quality-pipeline.md` |

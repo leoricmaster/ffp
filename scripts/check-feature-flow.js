@@ -265,8 +265,8 @@ function loadRegistryIds() {
 
   const content = fs.readFileSync(REGISTRY_PATH, "utf-8");
 
-  // Match ft-XXX-slug, td-XXX-slug, bg-XXX-slug patterns in the registry
-  const matches = content.matchAll(/\b(ft|td|bg)-\d{3}-[a-z0-9-]+\b/g);
+  // Match ft-XXX-slug, td-XXX-slug, de-XXX-slug patterns in the registry
+  const matches = content.matchAll(/\b(ft|td|de)-\d{3}-[a-z0-9-]+\b/g);
   for (const match of matches) {
     ids.add(match[0]);
   }
@@ -305,9 +305,9 @@ function checkFeatureMd(filePath, registryIds) {
 
   // ID registration check
   if (data.id) {
-    const idPattern = /^(ft|td|bg)-\d{3}-[a-z0-9-]+$/;
+    const idPattern = /^(ft|td|de)-\d{3}-[a-z0-9-]+$/;
     if (!idPattern.test(data.id)) {
-      issues.push(`${rel}: Invalid ID format '${data.id}'. Expected: ft-XXX-slug / td-XXX-slug / bg-XXX-slug`);
+      issues.push(`${rel}: Invalid ID format '${data.id}'. Expected: ft-XXX-slug / td-XXX-slug / de-XXX-slug`);
     } else if (!registryIds.has(data.id)) {
       issues.push(`${rel}: ID '${data.id}' not registered in Product-Backlog.md. Run: node scripts/allocate-id.js ${data.id.split("-")[0]} <slug>`);
     }

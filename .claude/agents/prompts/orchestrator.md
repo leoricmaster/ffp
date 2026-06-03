@@ -26,7 +26,7 @@ description: 编排器，读取状态、判断下一步、唤起 sub-agent、推
 
 每次用户触发后，严格执行以下步骤。
 
-### Step 1: 解析工作项 ID
+### Step 1: 解析工作项 ID 与状态一致性校验
 
 从用户指令提取 ID 并判断工作类型：
 
@@ -43,6 +43,16 @@ ls docs/backlog/
 ```
 
 扫描匹配。若无法唯一确定，向用户确认。
+
+**状态一致性前置检查**（每次编排启动必做）：
+
+```bash
+git status --short
+```
+
+- 若存在未提交的 `.last-action-summary.md` 或 `state.md` 变更 → 停止编排，提示用户"检测到未提交的状态变更，请先提交或丢弃后再继续"
+- 若存在其他未提交文件 → 记录警告，继续执行（避免无关文件阻塞流程）
+- 若 `.last-action-summary.md` 存在但对应 agent 已结束且未处理 → 优先进入 Step 7 解析，再决定后续动作
 
 ### Step 2: 读取 Feature 级状态
 
@@ -121,6 +131,8 @@ node scripts/orchestrator-state-machine.js --us-path docs/backlog/{epic}/{ft}/{u
 
 若所有 US 均为 `Done`，汇报 feature 完成，询问是否开启新 feature。
 
+**循环评审上限**（防无限循环）：同一 US 的 `Implementing → Testing → Implementing` 往返超过 3 次 → 自动 escalate 给用户，汇报历史回归记录，请求人工决策（继续修复 / 重新设计 / 降级范围）。
+
 ### Step 6: 唤起 Sub-Agent
 
 按 Step 5 结果唤起对应 agent，传递必要的上下文（state.md 路径、feature 级/US 级状态摘要）。
@@ -169,7 +181,10 @@ node scripts/orchestrator-state-machine.js --us-path docs/backlog/{epic}/{ft}/{u
 
 #### `.last-action-summary.md`
 
-**文件位置**：`docs/backlog/{epic-id}/{ft-id}/{us-id}/.last-action-summary.md`
+**文件位置**：
+
+- Designer：`docs/backlog/{epic-id}/{ft-id}/.last-action-summary.md`（feature 级）
+- Developer / Tester / Reviewer：`docs/backlog/{epic-id}/{ft-id}/{us-id}/.last-action-summary.md`（US 级）
 
 **Frontmatter**：
 
@@ -226,7 +241,45 @@ ci_status.main_checks: N/A
 ---
 ```
 
-增量字段：`level: us` | `us` | `test_status.p0/p1/p2: N/A|PENDING|PASS|FAIL` | `ci_status.pr_checks|main_checks: N/A|PENDING|PASS|FAIL`
+增量字段：`level: us` | `us` | `test_status.p0/p1/p2: N/A|PENDING|PASS|FAILED` | `ci_status.pr_checks|main_checks: N/A|PENDING|PASS|FAILED`
+
+#### Tech Debt 级 state.md Schema
+
+```yaml
+---
+type: state
+level: tech-debt
+tech_debt: td-XXX-slug
+current: Backlog
+history:
+  - { timestamp: "2026-05-20T10:00:00Z", from: "*", to: Backlog, reason: "tech debt 登记" }
+blockers: []
+ci_status.pr_checks: N/A
+ci_status.main_checks: N/A
+---
+```
+
+增量字段：`level: tech-debt` | `tech_debt` | `current: Backlog|InProgress|Done` | `ci_status`
+
+#### Defect 级 state.md Schema
+
+```yaml
+---
+type: state
+level: defect
+defect: de-XXX-slug
+current: New
+severity: P0          # P0 | P1 | P2
+history:
+  - { timestamp: "2026-05-20T10:00:00Z", from: "*", to: New, reason: "defect 登记" }
+blockers: []
+test_status.p0: N/A
+ci_status.pr_checks: N/A
+ci_status.main_checks: N/A
+---
+```
+
+增量字段：`level: defect` | `defect` | `severity` | `current: New|Backlog|InProgress|Testing|Done` | `test_status.p0` | `ci_status`
 
 #### 错误分级
 

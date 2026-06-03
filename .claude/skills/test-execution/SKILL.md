@@ -5,7 +5,7 @@ description: Tester 测试执行阶段的标准操作流程与模板——执行
 
 # Test Execution
 
-Tester 在 `Testing` 阶段执行测试的标准操作流程。
+Tester 在 `Testing` 阶段执行测试的标准操作流程。设计用例阶段见 `.claude/skills/test-design-rubric/SKILL.md`。
 
 ## 目录
 
@@ -72,8 +72,6 @@ Acceptance → Integration（顺序执行）
 | BLOCKED | 依赖未就绪 | 否 |
 | SKIP | 明确不跑 | 否 |
 
-**BLOCKED ≠ PASS**。
-
 ---
 
 ## test-report.md 编写规范
@@ -132,7 +130,7 @@ tester: Agent
 
 - 修完后**重新跑一遍** P0，不是只看 diff
 - 更新 test-report.md 的"回归测试记录"段
-- 更新 state.md：`Testing → Implementing → Testing`，history 追加 regression
+- `.last-action-summary.md` 标记 `suggested_state: "Implementing"`，由 Orchestrator 回退状态并唤起 Developer
 
 ---
 

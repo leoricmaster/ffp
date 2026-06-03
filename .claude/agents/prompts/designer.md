@@ -40,9 +40,26 @@ Feature 设计师，负责将用户想法转化为可落地的技术方案。
 ### Step 3: 架构一致性检查
 
 ```bash
-grep -E "paths:|/api/" docs/api/openapi.yaml
-ls docs/architecture/scenarios/ && grep -E -l "<领域词1>|<领域词2>|<领域词3>" docs/architecture/scenarios/scn-*.md
-grep -E -i "<领域词1>|<领域词2>|<领域词3>" docs/data/data-model.md
+# 检查关键目录是否存在，不存在则给出明确提示
+for dir in "docs/api" "docs/architecture/scenarios" "docs/data" "docs/decisions"; do
+  if [ ! -d "$dir" ]; then echo "WARN: $dir 不存在"; fi
+done
+
+# API 路径扫描
+grep -E "paths:|/api/" docs/api/openapi.yaml 2>/dev/null || echo "WARN: docs/api/openapi.yaml 不存在或无匹配"
+
+# Scenario 扫描（目录存在时才执行）
+if [ -d "docs/architecture/scenarios" ]; then
+  ls docs/architecture/scenarios/ 2>/dev/null
+  grep -E -l "<领域词1>|<领域词2>|<领域词3>" docs/architecture/scenarios/scn-*.md 2>/dev/null || echo "无匹配 scenario"
+else
+  echo "WARN: docs/architecture/scenarios/ 不存在"
+fi
+
+# 数据模型扫描
+grep -E -i "<领域词1>|<领域词2>|<领域词3>" docs/data/data-model.md 2>/dev/null || echo "WARN: docs/data/data-model.md 不存在或无匹配"
+
+# ADR 扫描
 grep -E -l "<领域词1>|<领域词2>|<领域词3>" docs/decisions/*.md 2>/dev/null || echo "无相关 ADR"
 ```
 
@@ -54,32 +71,21 @@ grep -E -l "<领域词1>|<领域词2>|<领域词3>" docs/decisions/*.md 2>/dev/n
 
 ### Step 4: 拆分与写作
 
-**US 拆分原则**：
+按 `.claude/skills/feature-design/SKILL.md` 编写产出物：
 
-- ≥2 个 US 时必须按端到端用户价值垂直切片，每个 US 跨越 UI/逻辑/数据完整交付；禁止按技术层（前端/后端/数据库）水平拆分
-- 复杂 feature（≥2 分支场景 / 失败路径 / 多 Actor）拆 `uc-*.md`
-- 渐进明细：Draft 阶段只写目标/背景/范围/US 骨架；设计审批前补全 AC/设计概要/API 契约
+- `feature.md`：需求与 US 拆分（含模板、US 拆分原则、渐进明细）
+- `design.md`：设计详设（拆分条件与结构模板）
+- `uc-*.md`：复杂 feature 的分支/失败路径用例
 
-**feature.md 必含段落**：
+**Designer 特有决策**（不在 skill 中，需自行判断）：
 
-- 目标 / 背景 / 范围（包含/不包含）
-- User Stories（含 AC）
-- 设计概要（>150 行拆 `design.md`）
-- 关联 Scenario
-- 与现有功能的关系（模板见 §4 约束）
-- 质量属性（安全/性能/隐私/可访问性）影响评估，无影响需显式声明"无"
-- Storybook 声明（`has_storybook: yes/no`，若 yes 列出需新增的 stories）
+- **Scenario 影响分级**：
+  - **T2（步骤/流程调整，契约/Actor 不变）**：在 feature.md 中标记影响范围
+  - **T3（契约/Actor/架构变更）**：触发架构审批 Gate，在设计文档中输出「下游更新清单」，由 Developer 实现阶段执行
 
-**Scenario 影响**：
-
-- 改动出现在 scenario 的"维护触发器"列表 → 单列 `## Scenario 影响`
-- **T2（步骤/流程调整，契约/Actor 不变）**：在 feature.md 中标记影响范围
-- **T3（契约/Actor/架构变更）**：触发架构审批 Gate，在设计文档中输出「下游更新清单」，由 Developer 实现阶段执行
-
-**何时开 scenario vs feature 内 UC**：
-
-- ≥2 个 Feature 协作 + 跨 Epic/Theme → 开 scenario（`docs/architecture/scenarios/`）
-- 单 Feature 内分支/失败路径 → 用 `uc-*.md`
+- **何时开 scenario vs feature 内 UC**：
+  - ≥2 个 Feature 协作 + 跨 Epic/Theme → 开 scenario（`docs/architecture/scenarios/`）
+  - 单 Feature 内分支/失败路径 → 用 `uc-*.md`
 
 ### Step 5: 交付与自检
 
@@ -140,13 +146,14 @@ grep -E -l "<领域词1>|<领域词2>|<领域词3>" docs/decisions/*.md 2>/dev/n
 - 你维护：`history`、`blockers`
 - Orchestrator 维护：`current`
 
-**`.last-action-summary.md`** frontmatter：
+**`.last-action-summary.md`**（路径：`docs/backlog/{epic-id}/{ft-id}/.last-action-summary.md`，**feature 级**）
 
 ```yaml
 ---
 agent: designer
 feature_id: ft-XXX-slug
 status: success          # success | failed | blocked | needs_human_gate | error
+suggested_state: ""      # Designer 阶段无需填写，留空
 ---
 ```
 
@@ -205,8 +212,6 @@ status: success          # success | failed | blocked | needs_human_gate | error
 
 | 场景 | 读取 |
 |------|------|
-| feature.md / design.md 模板 | `.claude/skills/feature-design/SKILL.md` |
+| feature.md / design.md 模板与规范 | `.claude/skills/feature-design/SKILL.md` |
 | 架构评审 | `.claude/skills/design-review/SKILL.md` |
-| API 契约变更流程 | `.claude/skills/feature-design/SKILL.md` §API 契约变更 |
-| 架构审批触发信号 | `.claude/skills/feature-design/SKILL.md` §架构审批触发信号 |
 | ADR 写作（架构决策记录） | `.claude/skills/adr-writing/SKILL.md` |

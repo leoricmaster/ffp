@@ -5,18 +5,21 @@ description: Playwright E2E 测试设计规范——selector 策略、data-testi
 
 # Playwright E2E 测试设计
 
-> Wave 5-5 起作为独立 Skill。Tester 写 E2E 用例、前端 Developer 加 data-testid 时按需加载。
+> Tester 写 E2E 用例、前端 Developer 加 data-testid 时按需加载。
 
 ---
 
-## 1. 命名规范
+## 0. 测试分层边界（Storybook play / E2E / 单元测试）
 
-```
-{feature-id}-{short-description}.spec.ts
-示例：ft-001-income-record.spec.ts
-```
+| 层级 | 工具 | 职责边界 | 禁止越界 |
+|------|------|---------|---------|
+| **单元测试** | Jest / Vitest | 纯函数、验证逻辑、权限判断、错误分支 | 不测 UI 渲染、不测跨组件交互 |
+| **Storybook play** | `@storybook/test` | 组件级交互（表单验证触发、按钮状态切换、模态框开闭） | **不**测跨页面导航、**不**测真实 API 调用、**不**测完整用户旅程 |
+| **E2E（本 Skill）** | Playwright | 完整用户旅程（登录 → 操作 → 断言 → 登出）、跨页面流程、真实 API 端到端 | 不重复测组件内部状态（已在 Storybook / 单测覆盖） |
 
-## 2. Selector 策略（稳定性从高到低）
+**判定标准**：如果测试需要 `page.goto()` 到多个不同路由，或需要验证后端数据持久化 → 归属 E2E；如果只在单个组件内点击/输入/断言 → 归属 Storybook `play`。
+
+## 1. Selector 策略（稳定性从高到低）
 
 | 优先级 | 选择器 | 示例 | 说明 |
 |-------|-------|------|------|
@@ -25,7 +28,7 @@ description: Playwright E2E 测试设计规范——selector 策略、data-testi
 | 3 | `getByLabel` | `getByLabel('邮箱地址')` | 表单字段 |
 | 4 | `id` | `#email` | 已稳定使用的 id 属性 |
 
-## 3. 禁用的模式
+## 2. 禁用的模式
 
 ```typescript
 // ❌ 固定等待（导致 flaky tests）
@@ -38,11 +41,11 @@ page.locator('p.text-red-600')
 page.locator('div > div > form > div:nth-child(2) > input')
 ```
 
-## 4. 推荐等待策略
+## 3. 推荐等待策略
 
 ```typescript
 // 条件等待
-await page.waitForSelector('[data-testid="form"]', { state: 'visible' })
+await page.locator('[data-testid="form"]').waitFor({ state: 'visible' })
 
 // 网络空闲（适合 SPA）
 await page.goto(url, { waitUntil: 'networkidle' })
@@ -51,7 +54,7 @@ await page.goto(url, { waitUntil: 'networkidle' })
 await expect(page.getByText('提交成功')).toBeVisible({ timeout: 5000 })
 ```
 
-## 5. data-testid 命名约定（前端配合）
+## 4. data-testid 命名约定（前端配合）
 
 **所有 E2E 可交互元素必须加 `data-testid`**。格式：`{page}-{field}-{type}`
 
@@ -62,9 +65,9 @@ await expect(page.getByText('提交成功')).toBeVisible({ timeout: 5000 })
 <p data-testid="register-email-error" className="text-red-600">{err}</p>
 ```
 
-示例：`register-email-input` / `login-password-input` / `transaction-submit-button` / `login-form` / `login-email-error` / `amount-input`。
+示例：`register-email-input` / `login-password-input` / `transaction-submit-button` / `login-form` / `login-email-error` / `records-amount-input`。
 
-## 6. 测试文件模板
+## 5. 测试文件模板
 
 ```typescript
 import { test, expect } from '@playwright/test';
@@ -85,15 +88,15 @@ describe('ft-001-create: 新增收入记录', () => {
   test('AT-001: 正常创建收入记录', async ({ page }) => {
     await page.goto(`${BASE_URL}/login`);
     await page.waitForLoadState('networkidle');
-    await page.fill('[data-testid="login-email-input"]', 'test@example.com');
-    await page.fill('[data-testid="login-password-input"]', 'password123');
-    await page.click('[data-testid="login-submit-button"]');
+    await page.locator('[data-testid="login-email-input"]').fill('test@example.com');
+    await page.locator('[data-testid="login-password-input"]').fill('password123');
+    await page.locator('[data-testid="login-submit-button"]').click();
 
     await page.goto(`${BASE_URL}/records/income/new`);
-    await page.waitForSelector('[data-testid="record-form"]', { state: 'visible' });
-    await page.fill('[data-testid="amount-input"]', '5000');
-    await page.fill('[data-testid="date-input"]', '2026-04-16');
-    await page.click('[data-testid="submit-button"]');
+    await page.locator('[data-testid="record-form"]').waitFor({ state: 'visible' });
+    await page.locator('[data-testid="records-amount-input"]').fill('5000');
+    await page.locator('[data-testid="records-date-input"]').fill('2026-04-16');
+    await page.locator('[data-testid="records-submit-button"]').click();
 
     await expect(page.getByText('提交成功')).toBeVisible({ timeout: 5000 });
   });
@@ -101,9 +104,141 @@ describe('ft-001-create: 新增收入记录', () => {
 });
 ```
 
-## 7. Smoke 标记规范
+## 5.5 Page Object Model（POM）
 
-**标记方式**：核心路径用例必须标记 `@smoke`，供 PR 阶段快速筛选。
+**所有跨测试复用的页面操作必须封装为 Page Object**，禁止在多个测试中内联重复选择器。
+
+```typescript
+// pages/LoginPage.ts
+export class LoginPage {
+  constructor(private page: Page) {}
+
+  async goto() {
+    await this.page.goto(`${BASE_URL}/login`);
+    await this.page.waitForLoadState('networkidle');
+  }
+
+  async fillEmail(email: string) {
+    await this.page.locator('[data-testid="login-email-input"]').fill(email);
+  }
+
+  async fillPassword(password: string) {
+    await this.page.locator('[data-testid="login-password-input"]').fill(password);
+  }
+
+  async submit() {
+    await this.page.locator('[data-testid="login-submit-button"]').click();
+  }
+
+  async login(email: string, password: string) {
+    await this.goto();
+    await this.fillEmail(email);
+    await this.fillPassword(password);
+    await this.submit();
+    // 等待登录完成——断言具体元素，不用 networkidle
+    await this.page.locator('[data-testid="dashboard-header"]').waitFor({ state: 'visible' });
+  }
+}
+
+// 测试中使用
+test('AT-001: 正常创建收入记录', async ({ page }) => {
+  const loginPage = new LoginPage(page);
+  await loginPage.login('test@example.com', 'password123');
+
+  await page.goto(`${BASE_URL}/records/income/new`);
+  // ...
+});
+```
+
+**POM 判定信号**：同一个页面有 ≥2 个测试用例 → 必须封装。
+
+---
+
+## 5.6 Fixtures（自定义测试上下文）
+
+使用 `test.extend` 注入可复用的测试上下文，如已登录页面、测试数据工厂。
+
+```typescript
+// fixtures.ts
+import { test as base } from '@playwright/test';
+import { LoginPage } from './pages/LoginPage';
+
+export const test = base.extend<{
+  loginPage: LoginPage;
+  authenticatedPage: Page;
+}>({
+  loginPage: async ({ page }, use) => {
+    await use(new LoginPage(page));
+  },
+
+  // 已登录页面 fixture：每个测试自动完成登录
+  authenticatedPage: async ({ page }, use) => {
+    const loginPage = new LoginPage(page);
+    await loginPage.login('test@example.com', 'password123');
+    await use(page);
+  },
+});
+
+// 测试中使用
+test('创建收入记录', async ({ authenticatedPage }) => {
+  // authenticatedPage 已登录，直接操作
+  await authenticatedPage.goto(`${BASE_URL}/records/income/new`);
+  // ...
+});
+```
+
+**Fixture 优于 beforeEach 的场景**：
+
+- 登录态在多个测试文件间复用 → 用 fixture + `storageState`
+- 需要按测试覆盖不同的用户角色 → 参数化 fixture
+
+---
+
+## 5.7 API Request（测试数据准备）
+
+Playwright 的 `request` API 用于在**不启动浏览器**的情况下快速准备测试数据。
+
+```typescript
+import { test, expect } from '@playwright/test';
+
+test('删除收入记录', async ({ page, request }) => {
+  // 1. 用 API 快速创建一条测试数据（比 UI 操作快 10x）
+  const response = await request.post(`${API_BASE_URL}/records`, {
+    headers: { Authorization: `Bearer ${TEST_TOKEN}` },
+    data: {
+      type: 'income',
+      amount: 5000,
+      date: '2026-04-16',
+      categoryId: 'cat-1-1',
+    },
+  });
+  expect(response.ok()).toBeTruthy();
+  const record = await response.json();
+
+  // 2. 用 UI 验证删除功能
+  await page.goto(`${BASE_URL}/records`);
+  await page.locator(`[data-testid="record-delete-${record.id}"]`).click();
+  await expect(page.getByText('删除成功')).toBeVisible();
+
+  // 3. 用 API 验证数据已清理
+  const getResponse = await request.get(`${API_BASE_URL}/records/${record.id}`);
+  expect(getResponse.status()).toBe(404);
+});
+```
+
+**数据准备策略优先级**：
+
+1. **API request**（最快，无浏览器开销）→ 用于 setup
+2. **Seed 脚本**（环境初始化）→ 用于基础数据（测试账号、分类）
+3. **UI 操作**（最慢但最完整）→ 仅当测试目标本身就是创建流程
+
+---
+
+## 6. Smoke 标记规范
+
+> **权威规范见 `.claude/skills/test-execution/SKILL.md` §Smoke 测试规范**。本节仅保留 Playwright 语法速查。
+
+**标记语法**：
 
 ```typescript
 // ✅ 标记 smoke
@@ -120,19 +255,7 @@ test.describe('@smoke', () => {
 
 **筛选命令**：`npx playwright test --grep '@smoke'`
 
-**什么该标 smoke**：
-
-- 用户最核心路径（登录、主功能 CRUD）
-- 其他 feature 高度依赖的前置流程
-- 历史上曾 regression 的路径
-
-**不该标 smoke**：
-
-- 边界/异常场景
-- 次要功能
-- 新 feature 未稳定前
-
-## 8. 设计用例时的 checklist
+## 7. 设计用例时的 checklist
 
 - [ ] 用 `data-testid` 选择器
 - [ ] 覆盖正面路径 + 前端验证失败 + 边界 + 错误恢复
@@ -141,7 +264,7 @@ test.describe('@smoke', () => {
 - [ ] 测试独立；每个测试用唯一数据
 - [ ] 核心路径已标记 `@smoke`（如需）
 
-## 9. 测试数据约定
+## 8. 测试数据约定
 
 **测试账号**：`test@example.com` / `password123`（seed 提供）
 **分类测试 ID**：`cat-1-1`（基本工资）
@@ -163,7 +286,7 @@ curl -s http://localhost:8080/api/v1/auth/login \
   -d '{"email":"test@example.com","password":"password123"}'
 ```
 
-## 10. 自动化能力评估
+## 9. 自动化能力评估
 
 | 测试类型 | 工具 | 可行性 |
 |---------|------|--------|

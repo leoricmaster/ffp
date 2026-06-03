@@ -5,7 +5,7 @@ description: Feature 开发与 PR 工作流——分支命名、Conventional Com
 
 # Feature / PR 工作流
 
-> Wave 5-5 起作为 Skill；完整流程见 `docs/process/feature-flow.md`。
+> 完整流程见 `docs/process/feature-flow.md`。
 
 ---
 
@@ -22,7 +22,7 @@ description: Feature 开发与 PR 工作流——分支命名、Conventional Com
 | Feature | `feature/ft-XXX-<slug>` | `feature/ft-004-user-profile` |
 | Defect | `fix/de-XXX-<slug>` | `fix/de-001-login-error` |
 | Tech Debt | `refactor/td-XXX-<slug>` | `refactor/td-001-openapi-categories` |
-| Hotfix | `hotfix/<slug>` | `hotfix/critical-security` |
+| Hotfix | `hotfix/hf-XXX-<slug>` | `hotfix/hf-001-critical-security` |
 | Docs | `docs/<slug>` | `docs/update-readme` |
 
 ## 3. 完整流程（典型 feature）
@@ -51,6 +51,7 @@ EOF
 
 # 5. review 循环
 # 收到 Changes Requested → 修 → commit → push（分支自动同步 PR）
+# main 有更新时：git fetch origin && git rebase origin/main（保持线性历史）
 
 # 6. 等待 CI 全绿
 gh run list --branch $(git branch --show-current)
@@ -58,7 +59,15 @@ gh run list --branch $(git branch --show-current)
 # CI 全绿后，通知用户验收（NOT 立即合并）
 
 # 7. 合并（用户 approve 后）
-gh pr merge <N> --squash
+# 查询当前分支对应的 PR number，然后合并
+PR_NUMBER=$(gh pr list --head $(git branch --show-current) --json number --jq '.[0].number')
+gh pr merge "$PR_NUMBER" --squash
+
+## Draft PR 使用场景
+
+- 代码尚未完成但需跑 CI 验证
+- 需先收集早期反馈再正式请求 review
+- 从 Draft 转为 Ready：在 PR 页面点击 "Ready for review" 或 `gh pr ready <N>`
 
 # 8. 合并后等待 main CI 全绿
 gh run list
@@ -133,10 +142,10 @@ Closes #123
 
 > **Developer 提交后必做**：PR push 后等待 CI 全绿再汇报完成；CI 红 → 修 → push → 回到检查。禁止 push 后立即说"完成了"。
 
-## Flow impact（必选二选一）
+## Scenario impact（必选二选一）
 
-- [ ] 本 PR 触及 `docs/architecture/flows/` 中某 flow 的步骤 / 契约 / Actor → flows/ 已同步更新，feature.md `## 关联 Flow` 已对齐
-- [ ] 本 PR 不触及任何 flow 的维护触发器
+- [ ] 本 PR 触及 `docs/architecture/scenarios/` 中某 scenario 的步骤 / 契约 / Actor → scenarios/ 已同步更新，feature.md `## 关联 Scenario` 已对齐
+- [ ] 本 PR 不触及任何 scenario 的维护触发器
 
 ## Non-goals（可选）
 
@@ -156,7 +165,7 @@ Feature: ft-xxx-<slug>
 | **警告** | 500–800 行 | 须在 PR description 中说明未拆分的原因 |
 | **上限** | > 800 行 | **必须拆分**为多个 PR；Reviewer 可拒绝 review |
 
-> 统计方式：`git diff --stat origin/main...HEAD` 的插入+删除行数之和。文档/配置变更不计入（单独标注）。
+> 统计方式：`git diff --stat origin/main...HEAD -- ':!*.md' ':!*.yaml' ':!*.json' ':!docs/' ':!.claude/'` 的插入+删除行数之和。文档/配置变更不计入。
 
 ## 6. CI 门禁
 
@@ -177,7 +186,7 @@ PR 自动跑：
 ## 7. Review 循环
 
 - Reviewer 先自动 review（架构 / 代码 / 契约）
-- 用户是最终 gate（Wave 5-4：PR review = 合并前的唯一用户 gate）
+- 用户是最终 gate（PR review = 合并前的唯一用户 gate）
 - Changes Requested → fix → push（不用 reopen PR，已有分支 push 自动更新）
 - `gh pr view <N>` 查看当前 review 状态
 
@@ -190,7 +199,7 @@ PR 自动跑：
 
 <body>
 
-Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+Co-Authored-By: Claude <noreply@anthropic.com>
 ```
 
 ## 9. 禁止项
@@ -202,7 +211,7 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
 - `--force` push 到 main
 - `git add -A` 或 `git add .`（容易带进敏感文件 / 大 binary）
 - 把 commit 合成 `git amend` 修改已推送的 commit（应新建 commit）
-- 修复 pre-commit hook 失败后用 `--amend`（hook 失败 = 上一 commit 未发生，amend 会改错前一个 commit）
+- push 到远程后再用 `--amend` 修改已推送的 commit（会改写公开历史，应新建 commit 再 push）
 - **push PR 后立即说"完成了"，不等 CI 结果**
 
 ✅ **要做**：
@@ -220,14 +229,14 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
 # 当前 PR 状态
 gh pr status
 
-# 查看 PR
-gh pr view <N>
+# 查看 PR（当前分支）
+gh pr view
 
-# 合并
-gh pr merge <N> --squash
+# 合并（当前分支）
+gh pr merge --squash
 
-# 查 CI
-gh pr checks <N>
+# 查 CI（当前分支）
+gh pr checks
 ```
 
 ## 相关

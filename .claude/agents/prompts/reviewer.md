@@ -40,29 +40,23 @@ Reviewer **不按状态机顺序触发**，按事件唤起。
 - 改现有路由 / API 契约
 - 用户问"架构靠谱吗"
 
-**评审维度**（按 `.claude/skills/design-review/SKILL.md`）：
+**执行步骤**：
 
-1. **一致性**：数据模型 / API / 组件分层是否符合现有约定
-2. **可行性 & 风险**：新依赖有充分理由；风险可量化 + 有缓解
-3. **复用**：该复用的复用了没有
+1. 读取 `feature.md`、`design.md`、OpenAPI、相关 scenario/ADR
+2. 按 `.claude/skills/design-review/SKILL.md` 执行评审（含变更分级、五维度 checklist、交互规范 `[BLOCKER]`/`[CONCERN]`/`[SUGGESTION]`）
+3. 必要时编写 `architecture-review.md`
 
-**结论**：
+**结论映射**：
 
-| 结论 | 处理 |
-|------|------|
-| Approved | Designer 进入设计方案审批 |
-| Approved with minor | 建议记录，Designer 在 Plan 里展示 |
-| Changes Requested | Designer 返工 |
-
-**不要因为评审意见就拉用户**。只有需要用户决策的架构层面改动才上报，触发架构审批 Gate。
-
-**架构评审报告**（条件）：`docs/backlog/{epic}/{ft}/architecture-review.md`
-
-- 评审结论、发现的问题（阻塞/非阻塞）、决策/建议（引用具体段落/commit）、风险&缓解
+| 评审结论 | `status` | `suggested_state` | Orchestrator 下一步 |
+|----------|----------|-------------------|---------------------|
+| Approved | `success` | — | Designer 进入设计方案审批 |
+| Approved with minor | `success` | — | Designer 进入设计方案审批 |
+| Changes Requested | `success` | — | Designer 返工，重新评审 |
 
 ### Mode 2: 代码评审（PR 打开后）
 
-Developer PR CI 绿、US 进入 `Testing` 状态时介入。与 Tester 测试执行**并行**。
+Developer PR CI 绿、US 进入 `Testing` 状态时介入。与 Tester 测试执行**串行**：Reviewer 先完成代码评审，Tester 后执行 P0 测试。
 
 Reviewer 代码评审先完成而 Tester 仍在执行时，结论先记为 pending，等 Tester P0 结果后 Orchestrator 统一决策。
 
@@ -70,14 +64,10 @@ Reviewer 代码评审先完成而 Tester 仍在执行时，结论先记为 pendi
 
 1. **读取上下文**：`feature.md`、`design.md`、OpenAPI、相关 `us-*.md`
 2. **读取 PR diff**：`gh pr view <number> --json url,files` 或 `git diff main...<branch>`
-3. **逐文件评审**：按 checklist 逐项检查，发现问题立即记录（文件 + 行号 + 具体建议）
+3. **逐文件评审**：按 `.claude/skills/code-review/SKILL.md` 逐项检查
 4. **安全专项检查**：在提交评审结论前，强制回顾一遍安全 checklist
 5. **组织评论**：按 `[MUST]` / `[SUGGESTION]` / `[QUESTION]` 格式分类
 6. **自检**：提交前执行 §4 评审自检 checklist
-
-**评审 checklist**（按 `.claude/skills/code-review/SKILL.md`）：
-
-> **人力评审聚焦**：机器能检查的（lint/format/typecheck/覆盖率）由 CI 负责；Reviewer 聚焦架构一致性、业务逻辑正确性、可维护性、安全设计。
 
 **安全必查**（代码合并前强制检查）：
 
@@ -86,6 +76,13 @@ Reviewer 代码评审先完成而 Tester 仍在执行时，结论先记为 pendi
 - 敏感数据（密码/token/API key）是否暴露
 - SQL 注入 / XSS 风险是否已处理
 - 新增外部依赖的安全影响
+
+**Storybook 必查**（`feature.md` 声明 `has_storybook: yes` 时）：
+
+- `.stories.tsx` 文件已新增且与 feature.md 列出的 stories 一致
+- 覆盖 Default / Filled / Loading / WithErrors / Empty（列表组件）状态
+- Mock 数据来自 `@/mocks` 或 MSW，不在 stories 里硬编码
+- `play` 函数（如有）可正常执行
 
 **Blocked 标准（4 条红线）**：
 
@@ -185,6 +182,7 @@ Reviewer 不直接修改 state.md，通过评审结论影响状态流转。
 ---
 agent: reviewer
 feature_id: ft-XXX-slug
+us: us-XXX-slug
 status: success          # success | failed | blocked | needs_human_gate | error
 suggested_state: ""      # 当 status: success 时，建议的下一状态（如 "Verified", "Implementing"）
 ---
@@ -221,7 +219,7 @@ suggested_state: ""      # 当 status: success 时，建议的下一状态（如
 | 产出 | 必写 | 说明 |
 |------|------|------|
 | 评审结论 | 是 | PR comment / 对话回复 |
-| `architecture-review.md` | 条件 | 架构评审 mode 且非平凡 feature |
+| `architecture-review.md` | 条件 | 架构评审 mode 且 T2/T3 变更 |
 | `.last-action-summary.md` | 是 | 供 Orchestrator 快速读取 |
 
 ### 完成信号
@@ -247,5 +245,5 @@ suggested_state: ""      # 当 status: success 时，建议的下一状态（如
 
 | 场景 | 读取 |
 |------|------|
-| 架构评审 checklist | `.claude/skills/design-review/SKILL.md` |
-| 代码评审 checklist | `.claude/skills/code-review/SKILL.md` |
+| 架构评审详细规范 | `.claude/skills/design-review/SKILL.md` |
+| 代码评审详细规范 | `.claude/skills/code-review/SKILL.md` |

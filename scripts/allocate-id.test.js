@@ -44,7 +44,7 @@ function run(args) {
 function getRegistry() {
   const content = fs.readFileSync(REGISTRY, "utf-8");
   const result = {};
-  for (const type of ["ft", "td", "bg"]) {
+  for (const type of ["ft", "td", "de"]) {
     // Match: | `ft` | Feature | 0 | or | ft | Tech Debt | 0 |
     const match = content.match(new RegExp(`\`?${type}\`?\\s*\\|[^|]+\\|\\s*(\\d+)\\s*\\|`));
     result[type] = match ? parseInt(match[1], 10) : 0;
@@ -119,19 +119,19 @@ async function main() {
       );
     }
 
-    // Test 7: happy path bg
+    // Test 7: happy path de
     {
       const before = getRegistry();
-      const r = await run(["bg", "self-test-bg"]);
+      const r = await run(["de", "self-test-de"]);
       const after = getRegistry();
       const lines = r.stdout.trim().split("\n");
       const idLine = lines[lines.length - 1];
-      const expectedId = `bg-${String(before.bg + 1).padStart(3, "0")}-self-test-bg`;
+      const expectedId = `de-${String(before.de + 1).padStart(3, "0")}-self-test-de`;
       assert(
         r.code === 0 &&
         idLine === expectedId &&
-        after.bg === before.bg + 1,
-        `happy path bg → allocated ID + registry incremented (${before.bg} → ${after.bg})`
+        after.de === before.de + 1,
+        `happy path de → allocated ID + registry incremented (${before.de} → ${after.de})`
       );
     }
 
@@ -171,7 +171,7 @@ function ensureRegistryTable() {
 |------|------|-------------|
 | \`ft\` | Feature | 0 |
 | \`td\` | Tech Debt | 0 |
-| \`bg\` | Bug | 0 |`;
+| \`de\` | Defect | 0 |`;
     fs.writeFileSync(REGISTRY, content.replace(marker, insertion), "utf-8");
   }
 }
