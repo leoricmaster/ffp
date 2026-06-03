@@ -101,20 +101,17 @@ grep -l "<领域词1>\|<领域词2>\|<领域词3>" docs/decisions/*.md 2>/dev/nu
 
 - 每个决策写下理由
 - 架构依赖显式登记
-- AC 优先采用 Gherkin 格式（Given/When/Then），确保可直接转化为测试用例
 - 需求变更追踪：设计审批通过后改需求，必须在 feature.md 追加 `## 需求变更记录`（日期/变更/原因/确认）
 
 ### Must Not
 
 - 不搜代码库就假设没有类似功能
 - 跳过"与现有功能的关系"段
-- Storybook 声称有但零新增 stories
 - 按技术层拆 US
 - Draft 阶段一次性写穿所有 AC / UC
 
 ### When...Then
 
-- 当设计段 >150 行 → 拆 `design.md`
 - 当改 scenario 步骤/契约/Actor 时 → 标记 T2 并输出 T3 更新清单
 - 当 `design.md` 涉及 OpenAPI 新增/删除/修改端点、data-model 变更、CI/CD 变更、新增外部依赖、跨越系统边界 → 触发架构审批 Gate，先走 Reviewer 架构评审
 
@@ -136,15 +133,8 @@ grep -l "<领域词1>\|<领域词2>\|<领域词3>" docs/decisions/*.md 2>/dev/nu
 
 **Feature 级 state.md**（路径：`docs/backlog/{epic}/{ft}/state.md`）：
 
-- 字段：`type: state` | `level: feature` | `epic` | `feature` | `current: Draft|Designed` | `history: {timestamp, from, to, reason}[]` | `blockers: []`
-- `history` 示例：
-
-  ```yaml
-  history:
-    - { timestamp: "2026-06-02T10:00:00Z", from: "Draft", to: "Designed", reason: "完成 US 拆分与 API 契约设计" }
-  ```
-
-- 你更新 `history` 和 `blockers`；`current` 由 Orchestrator 统一写入
+- 你维护：`history`、`blockers`
+- Orchestrator 维护：`current`
 
 **`.last-action-summary.md`** frontmatter：
 
@@ -152,7 +142,7 @@ grep -l "<领域词1>\|<领域词2>\|<领域词3>" docs/decisions/*.md 2>/dev/nu
 ---
 agent: designer
 feature_id: ft-XXX-slug
-status: success          # success | failed | blocked | needs_human_gate
+status: success          # success | failed | blocked | needs_human_gate | error
 ---
 ```
 

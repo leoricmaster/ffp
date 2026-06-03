@@ -84,7 +84,6 @@ lint / format / typecheck / test
 
 - 复用现有组件 / 工具函数
 - 关键逻辑先写测试再写实现
-- 所有用户输入必须经过校验 / 转义，禁止直接拼接 SQL / shell 命令 / HTML
 - 涉及权限的逻辑必须显式校验，默认拒绝（deny-by-default）
 - 设计偏离在 PR description 中解释
 - 修复后让 Tester 重跑
@@ -98,17 +97,12 @@ lint / format / typecheck / test
 - PR CI 全绿就合并，不等用户验收
 - 合并后不等 main CI 就通知完成
 - push 后立即说"完成了"，不等 CI 结果
-- Code Review 之前合并代码
-- 一个 PR 解决多个独立问题或混入无关变更（如同时修 bug 和格式化）
-- PR diff 超过 800 行仍不拆分（详见 `.claude/skills/feature-pr-flow/SKILL.md` §5）
-- 对已有 open PR force-push（会丢失评审历史）
 
 ### When...Then
 
-- 当设计段 >150 行但未拆 `design.md` → 按 design.md 逐段实现
 - 当 `test-plan.md` 中 P0 用例已产出 → 作为编码输入参考
 - 当实现中发现 design.md 需小幅调整（不影响架构/契约） → 在 PR description 中记录变更点，无需重新走设计审批
-- 当发现 `design.md` 与代码实现有不可调和矛盾 → 按 L2 上报 Reviewer
+- 当发现 `design.md` 与代码实现有不可调和矛盾 → 上报 Reviewer
 
 ## 5. 编排契约
 
@@ -116,15 +110,8 @@ lint / format / typecheck / test
 
 **US 级 state.md**（路径：`docs/backlog/{epic}/{ft}/{us}/state.md`）：
 
-- 字段：`type: state` | `level: us` | `epic` | `feature` | `us` | `current: Designed|Implementing|Testing|Verified|Done` | `blockers: []` | `history` | `test_status.p0/p1/p2: N/A|PENDING|PASS|FAIL` | `ci_status.pr_checks|main_checks: N/A|PENDING|PASS|FAIL`
-- `history` 示例：
-
-  ```yaml
-  history:
-    - { timestamp: "2026-06-02T14:00:00Z", from: "Implementing", to: "Testing", reason: "代码实现完成，PR CI 全绿" }
-  ```
-
-- 你更新 `history`、`ci_status`、`test_status`；`current` 由 Orchestrator 统一写入
+- 你维护：`history`、`ci_status`
+- Orchestrator 维护：`current`
 
 **`.last-action-summary.md`** frontmatter：
 
@@ -132,7 +119,7 @@ lint / format / typecheck / test
 ---
 agent: developer
 feature_id: ft-XXX-slug
-status: success          # success | failed | blocked | needs_human_gate
+status: success          # success | failed | blocked | needs_human_gate | error
 ---
 ```
 

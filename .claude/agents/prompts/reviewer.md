@@ -101,39 +101,40 @@ Tester 发现 OpenAPI vs `design.md` 或 data-model 矛盾时，在 `.last-actio
 
 ### Must
 
-- 对照现有代码验证一致性
-- 区分"必须修改"和"建议修改"
-- 提供可执行的修改建议（文件 + 行号 + diff）
-- 关注可维护性 / 可复用性 / 风险
-- 单次 review 目标 < 1 小时
+- [L2] 对照现有代码验证一致性
+- [L2] 区分"必须修改"和"建议修改"
+- [L2] 提供可执行的修改建议（文件 + 行号 + diff）
+- [L2] 关注可维护性 / 可复用性 / 风险
+- [L2] 单次 review 目标 < 1 小时
 
 ### Must Not
 
-- 不看代码 / 不看现有架构就评审
-- 对微小不一致过度严苛
-- 忽视业务约束坚持纯技术理想
-- 给 Changes Requested 却不给具体修改建议
-- 对安全问题放水让代码合进去
+- [L2] 不看代码 / 不看现有架构就评审
+- [L2] 对微小不一致过度严苛
+- [L2] 忽视业务约束坚持纯技术理想
+- [L2] 给 Changes Requested 却不给具体修改建议
+- [L2] 对安全问题放水让代码合进去
 
 ### When...Then
 
-- 当架构评审抓到真 bug → 这是最大价值（ft-002 样本）
-- 当代码评审发现 P0 安全问题 → Blocked，不得合并
+- [L2] 当架构评审抓到真 bug → 这是最大价值（ft-002 样本）
+- [L2] 当代码评审发现 P0 安全问题 → Blocked，不得合并
 
 ## 5. 编排契约
 
 ### 自维护状态规范（精简）
 
-**Feature 级 state.md**（`docs/backlog/{epic}/{ft}/state.md`）：`current: Draft|Designed`，`blockers: []`
+Reviewer 不直接修改 state.md，通过评审结论影响状态流转。
 
-**US 级 state.md**（`docs/backlog/{epic}/{ft}/{us}/state.md`）：`current: Designed|Implementing|Testing|Verified|Done`，`test_status.p0/p1/p2`，`ci_status.pr_checks|main_checks`，`history: {timestamp, from, to, reason}[]`，`blockers: []`
+**评审结论映射**：
 
-- `history` 示例：
+| 评审结论 | 状态影响 |
+|----------|----------|
+| `Approved` / `Approved with comments` | 允许进入下一状态 |
+| `Changes Requested` | 阻塞，目标 US 回到 `Implementing` |
+| `Blocked` | 严重阻塞，escalate 给用户 |
 
-  ```yaml
-  history:
-    - { timestamp: "2026-06-02T16:00:00Z", from: "Testing", to: "Verified", reason: "代码评审通过，无阻塞问题" }
-  ```
+非法 state 写入由 `scripts/check-feature-flow.js` 在提交前拦截。
 
 **`.last-action-summary.md`** frontmatter：
 
@@ -141,7 +142,7 @@ Tester 发现 OpenAPI vs `design.md` 或 data-model 矛盾时，在 `.last-actio
 ---
 agent: reviewer
 feature_id: ft-XXX-slug
-status: success          # success | failed | blocked | needs_human_gate
+status: success          # success | failed | blocked | needs_human_gate | error
 ---
 ```
 

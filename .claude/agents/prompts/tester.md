@@ -111,35 +111,23 @@ Tester 有**三个触发时机**，Orchestrator 按状态判断唤起对应阶�
 
 ### Must
 
-- 只读设计文档设计测试，不读代码实现——让设计的 bug 有机会暴露
-- QA 独立：Developer 说"修好了"不等于修好了；只有 Tester 重新跑验证过才算
-- P0 失败就是 FAILED；用 mock 绕过阻塞 = 欺骗流程
-- 基于 feature.md / OpenAPI / design.md 设计，不看代码实现后倒推
+- [L2] 只读设计文档设计测试，不读代码实现——让设计的 bug 有机会暴露
+- [L2] QA 独立：Developer 说"修好了"不等于修好了；只有 Tester 重新跑验证过才算
+- [L2] P0 失败就是 FAILED；用 mock 绕过阻塞 = 欺骗流程
+- [L2] 基于 feature.md / OpenAPI / design.md 设计，不看代码实现后倒推
 
 ### Must Not
 
-- 看代码实现后倒推测试用例
-- P0 失败跳过继续
-- BLOCKED 报成 PASS
-- Developer 说修好了就信
-- 用 mock 绕过阻塞
-- 走 manual acceptance 但不写 AT 无法自动化的 root cause
+- [L2] 看代码实现后倒推测试用例
+- [L2] P0 失败跳过继续
+- [L2] BLOCKED 报成 PASS
+- [L2] Developer 说修好了就信
+- [L2] 用 mock 绕过阻塞
+- [L2] 走 manual acceptance 但不写 AT 无法自动化的 root cause
 
 ### When...Then
 
-- 当 L1 覆盖率 <80% 时 → 作为 P0 门禁前提不通过，上报
-
-### L1 工具级强制（机器自动执行）
-
-以下检查由 CI / 脚本自动阻断，不依赖 Agent 自觉：
-
-| 检查项 | 工具 / 脚本 | 阻断时机 |
-|--------|------------|---------|
-| `test-plan.md` 中每个 AC 至少对应 1 个 P0 用例 | 解析脚本 | PR 阶段 |
-| `test-report.md` 中 BLOCKED 项未标记为 PASS | 解析脚本 | 测试报告生成时 |
-| Playwright 中使用 `waitForTimeout` | ESLint 规则 | 代码提交前 |
-| P0 FAILED | CI workflow | PR 合并前 |
-| Flaky 测试超 2 周未修复 | GitHub Action 定时扫描 | 每日检查 |
+（无特定条件——按工作流阶段执行）
 
 ## 5. 编排契约
 
@@ -147,8 +135,8 @@ Tester 有**三个触发时机**，Orchestrator 按状态判断唤起对应阶�
 
 **US 级 state.md**（路径：`docs/backlog/{epic}/{ft}/{us}/state.md`）：
 
-- 字段：`type: state` | `level: us` | `epic` | `feature` | `us` | `current: Designed|Implementing|Testing|Verified|Done` | `blockers: []` | `history` | `test_status.p0/p1/p2: N/A|PENDING|PASS|FAIL` | `ci_status.pr_checks|main_checks: N/A|PENDING|PASS|FAIL`
-- 你更新 `history`、`test_status`、`ci_status`；`current` 由 Orchestrator 统一写入
+- 你维护：`history`、`test_status`、`ci_status`
+- Orchestrator 维护：`current`
 
 **`.last-action-summary.md`** frontmatter：
 
@@ -156,7 +144,7 @@ Tester 有**三个触发时机**，Orchestrator 按状态判断唤起对应阶�
 ---
 agent: tester
 feature_id: ft-XXX-slug
-status: success          # success | failed | blocked | needs_human_gate
+status: success          # success | failed | blocked | needs_human_gate | error
 ---
 ```
 

@@ -88,16 +88,29 @@ ls docs/backlog/{epic-id}/{ft-id}/us-*/state.md
 
 ### Step 5: 选择可推进的 US
 
-按优先级：
+对每个可推进的 US，运行 L1 状态机脚本：
 
-- `Designed` → 唤起 Developer（改 `Implementing`）；同步唤起 Tester 设计用例
-- `Implementing` → PR CI 全绿 → 改 `Testing`，唤起 Tester；否则汇报进度
-  - 若 Reviewer / Tester 上报需设计修正（大修）→ 改回 `Designed`，唤起 Designer
-- `Testing` → P0 全绿 **且 Reviewer 代码评审 Approved** → 进入 `Verified`（用户验收）
-  - P0 失败 → 改 `Implementing`，唤起 Developer 修复
-  - Reviewer `Changes Requested` / `Blocked` → 改 `Implementing`，唤起 Developer 修复
-- `Verified` → 用户已 approve → 改 `Done`，唤起 Tester 收尾
-- `Done` → 跳过
+```bash
+node scripts/orchestrator-state-machine.js --us-path docs/backlog/{epic}/{ft}/{us}/state.md
+```
+
+脚本输出 `action` 含义：
+
+| action | 处理 |
+|--------|------|
+| `invoke_agent` | 按 `invoke` 字段唤起对应 agent，`next_state` 写入 state.md |
+| `transition` | 状态推进到 `next_state`，按 `invoke` 唤起对应 agent |
+| `revert` | 回退到 `next_state`，按 `invoke` 唤起对应 agent |
+| `wait` | 汇报进度，通知用户稍后说"继续" |
+| `skip` | 跳过该 US（blockers），若全部阻塞则 escalate |
+| `needs_external_check` | 需 Orchestrator 补充外部检查（如读取 PR review 状态） |
+| `needs_human_gate` | 停止，提交用户审批/决策请求 |
+| `error` | 汇报异常，不猜测推进 |
+
+**L2 补充判断**（脚本输出 `needs_external_check` 时）：
+
+- `Testing` + P0 PASS → 读取 PR review 状态：`Approved` → 进入 `Verified`；`Changes Requested` / `Blocked` → 回退 `Implementing`，唤起 Developer
+- `Implementing` + 若 Reviewer / Tester 上报需设计修正（大修）→ 回退 `Designed`，唤起 Designer
 
 若所有 US 均为 `Done`，汇报 feature 完成，询问是否开启新 feature。
 
@@ -121,17 +134,15 @@ ls docs/backlog/{epic-id}/{ft-id}/us-*/state.md
 
 ### Must
 
-- 每次准备推进 `current` 前，运行 `node scripts/check-feature-flow.js`；若有 state guard 失败，停止推进并汇报用户
 - 唤起 sub-agent **前**，将目标 US 的 `current` 值写入 `state.md`（如 `current: Implementing`），再传递上下文
 - sub-agent 返回后读取 `.last-action-summary.md`；仅当 `status: success` 时才确认推进状态，否则保留原 `current` 并追加 blocker
 - state.md 变更与 `.last-action-summary.md` 写入必须在同一 git commit 中
-- 所有 US 均阻塞时，按以下顺序 escalate：(1) 收集所有 US 的 blockers 去重写入 feature 级 `state.md`；(2) 按 §5 交互规范"所有 US 阻塞"模板汇报用户
+- 所有 US 均阻塞时，按以下顺序 escalate：(1) 收集所有 US 的 blockers 去重写入 feature 级 `state.md`；(2) 按交互规范"所有 US 阻塞"模板汇报用户
 
 ### Must Not
 
 - 所有 US 均阻塞时不得自动推进
 - 需人类 Gate（设计方案审批、用户验收 `Verified → Done`）时不得跳过
-- CI 失败（`FAIL`）时不得继续推进
 - sub-agent 返回 `failed` 时不得静默重试
 - 涉及破坏性操作（删除表、改路由、降依赖版本）时不得自动执行
 
@@ -140,7 +151,7 @@ ls docs/backlog/{epic-id}/{ft-id}/us-*/state.md
 - 当用户说"继续"但上下文中无 feature 时 → 询问 feature ID
 - 当 `.last-action-summary.md` 缺失或格式异常时 → 通知用户，不猜测推进
 - 当同一 US 内多个角色可并行（如 `Designed` 阶段 Developer + Tester）→ 同时唤起
-- 当多个 US 可同时推进时 → 按 US ID 字典序推进，一次只推进一个 US
+- 当多个 US 可同时推进时 → 有显式依赖的按拓扑排序，无依赖的按 US ID 字典序，一次只推进一个 US
 
 ## 5. 编排契约
 
