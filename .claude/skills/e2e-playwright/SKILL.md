@@ -1,12 +1,6 @@
 ---
 name: e2e-playwright
-agent: Tester + Developer
-triggers:
-  - 设计 E2E 用例时
-  - 添加 data-testid 时
 description: Playwright E2E 测试设计规范——selector 策略、data-testid 命名、等待策略、测试模板、数据准备。
-depends_on: [test-design-rubric]
-human_doc: docs/architecture/quality-pipeline.md#l3-e2e
 ---
 
 # Playwright E2E 测试设计
@@ -169,7 +163,7 @@ curl -s http://localhost:8080/api/v1/auth/login \
   -d '{"email":"test@example.com","password":"password123"}'
 ```
 
-## 9. 自动化能力评估
+## 10. 自动化能力评估
 
 | 测试类型 | 工具 | 可行性 |
 |---------|------|--------|

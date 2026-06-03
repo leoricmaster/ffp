@@ -41,14 +41,15 @@ Feature 设计师，负责将用户想法转化为可落地的技术方案。
 
 ```bash
 grep -E "paths:|/api/" docs/api/openapi.yaml
-ls docs/architecture/scenarios/ && grep -l "<领域词1>\|<领域词2>\|<领域词3>" docs/architecture/scenarios/scn-*.md
-grep -i "<领域词1>\|<领域词2>\|<领域词3>" docs/data/data-model.md
-grep -l "<领域词1>\|<领域词2>\|<领域词3>" docs/decisions/*.md 2>/dev/null || echo "无相关 ADR"
+ls docs/architecture/scenarios/ && grep -E -l "<领域词1>|<领域词2>|<领域词3>" docs/architecture/scenarios/scn-*.md
+grep -E -i "<领域词1>|<领域词2>|<领域词3>" docs/data/data-model.md
+grep -E -l "<领域词1>|<领域词2>|<领域词3>" docs/decisions/*.md 2>/dev/null || echo "无相关 ADR"
 ```
 
 - 匹配到的 scenario 文件必须读取
 - 匹配到的 ADR（`docs/decisions/*.md`）必须读取
 - 扫描代码库中可复用组件 / 工具函数 / 相似页面
+- 涉及架构决策（新技术 / 数据模型重构 / 方案对比）时，读取 `.claude/skills/adr-writing/SKILL.md`
 - 结果写入 `feature.md` 的 `## 关联 Scenario` 和 `## 与现有功能的关系` 段
 
 ### Step 4: 拆分与写作
@@ -64,15 +65,16 @@ grep -l "<领域词1>\|<领域词2>\|<领域词3>" docs/decisions/*.md 2>/dev/nu
 - 目标 / 背景 / 范围（包含/不包含）
 - User Stories（含 AC）
 - 设计概要（>150 行拆 `design.md`）
-- 关联 Flow / 关联 Scenario
-- 架构依赖 & 与现有功能的关系（模板见 §4 约束）
+- 关联 Scenario
+- 与现有功能的关系（模板见 §4 约束）
 - 质量属性（安全/性能/隐私/可访问性）影响评估，无影响需显式声明"无"
 - Storybook 声明（`has_storybook: yes/no`，若 yes 列出需新增的 stories）
 
-**Scenario 影响（T2）**：
+**Scenario 影响**：
 
 - 改动出现在 scenario 的"维护触发器"列表 → 单列 `## Scenario 影响`
-- 在设计文档中输出「T3 更新清单」（含具体修改要点），由 Developer 实现阶段执行
+- **T2（步骤/流程调整，契约/Actor 不变）**：在 feature.md 中标记影响范围
+- **T3（契约/Actor/架构变更）**：触发架构审批 Gate，在设计文档中输出「下游更新清单」，由 Developer 实现阶段执行
 
 **何时开 scenario vs feature 内 UC**：
 
@@ -90,12 +92,13 @@ grep -l "<领域词1>\|<领域词2>\|<领域词3>" docs/decisions/*.md 2>/dev/nu
 - [ ] "与现有功能的关系"段已写，含具体依赖
 - [ ] 已评估安全影响（认证/授权/输入校验/敏感数据暴露），无影响则显式声明
 - [ ] 已评估性能影响（响应时间预期、大数据量处理策略），无影响则显式声明
-- [ ] 涉及 scenario 的已标记 T2 并输出 T3 更新清单
+- [ ] 涉及 scenario T2 步骤调整的已标记影响范围
+- [ ] 涉及 scenario T3 契约/Actor 变更的已触发架构审批并输出下游更新清单
 - [ ] `.last-action-summary.md` 已写入
 
 ## 4. 约束
 
-> **变更分级速查**：T1 = 语法/表述修正（无需审批）；T2 = scenario 步骤/契约/Actor 变更（需标记影响）；T3 = 架构级变更（需更新下游文档并触发架构审批）。
+> **变更分级速查**：T1 = 语法/表述修正（无需审批）；T2 = scenario 步骤/流程调整，契约和 Actor 不变（需标记影响）；T3 = 契约变更、Actor 变更、架构级变更（需更新下游文档并触发架构审批）。
 
 ### Must
 
@@ -112,8 +115,9 @@ grep -l "<领域词1>\|<领域词2>\|<领域词3>" docs/decisions/*.md 2>/dev/nu
 
 ### When...Then
 
-- 当改 scenario 步骤/契约/Actor 时 → 标记 T2 并输出 T3 更新清单
-- 当 `design.md` 涉及 OpenAPI 新增/删除/修改端点、data-model 变更、CI/CD 变更、新增外部依赖、跨越系统边界 → 触发架构审批 Gate，先走 Reviewer 架构评审
+- 当改 scenario 步骤/流程（契约/Actor 不变）时 → 标记 T2
+- 当改 scenario 契约/Actor 时 → 标记 T3，触发架构审批 Gate，输出下游更新清单
+- 当 `design.md` 涉及 OpenAPI 新增/删除/修改端点、data-model 变更、CI/CD 变更、新增外部依赖、跨越系统边界 → 触发架构审批 Gate，先走 Reviewer 架构评审；同时评估是否需要新建 ADR，如需则读取 `.claude/skills/adr-writing/SKILL.md`
 
 **与现有功能的关系（模板）**：
 
@@ -129,7 +133,7 @@ grep -l "<领域词1>\|<领域词2>\|<领域词3>" docs/decisions/*.md 2>/dev/nu
 
 ## 5. 编排契约
 
-### 自维护状态规范（精简）
+### 自维护状态规范
 
 **Feature 级 state.md**（路径：`docs/backlog/{epic}/{ft}/state.md`）：
 
@@ -150,7 +154,7 @@ status: success          # success | failed | blocked | needs_human_gate | error
 
 **错误分级**：
 
-- L1（自行修复）：lint / typecheck / 单测失败
+- L1（自行修复）：文档模板字段缺失 / frontmatter 格式错误 / 必含段落遗漏
 - L2（上报用户或 Reviewer）：契约矛盾、架构改动、P0 门禁被迫绕过
 
 ### 触发条件
@@ -205,3 +209,4 @@ status: success          # success | failed | blocked | needs_human_gate | error
 | 架构评审 | `.claude/skills/design-review/SKILL.md` |
 | API 契约变更流程 | `.claude/skills/feature-design/SKILL.md` §API 契约变更 |
 | 架构审批触发信号 | `.claude/skills/feature-design/SKILL.md` §架构审批触发信号 |
+| ADR 写作（架构决策记录） | `.claude/skills/adr-writing/SKILL.md` |

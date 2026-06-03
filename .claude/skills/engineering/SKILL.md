@@ -1,13 +1,6 @@
 ---
 name: engineering
-agent: Developer
-triggers:
-  - 编码实现时
-  - 本地自检时
-  - 编写单元测试时
 description: Developer 编码实现时的技术栈规范与标准操作流程——后端模块边界、Controller/Service 分工、前端目录组织、安全基线、data-testid 命名、自检命令、单元测试模板。
-depends_on: []
-human_doc: docs/architecture/quality-pipeline.md#l1-unit-tests
 ---
 
 # Engineering
@@ -170,20 +163,31 @@ npm test
 - **隔离外部依赖**：Prisma / JWT / Logger / 加密通过 Mock 注入，单测不碰真实 DB
 - **AAA 模式**：Arrange / Act / Assert
 - **命名**：`describe('ServiceName', () => describe('methodName', () => test('应该[预期行为]')))`
-- **Mock 清理**：`beforeEach(() => jest.clearAllMocks())`
+- **Mock 清理**：
+  - 后端 Jest：`beforeEach(() => jest.clearAllMocks())`
+  - 前端 Vitest：`beforeEach(() => vi.clearAllMocks())`
+
+### 测试框架与配置
+
+| 端 | 框架 | 配置文件 |
+|----|------|---------|
+| 后端（NestJS） | Jest | `backend/jest.config.js` |
+| 前端（Vite） | Vitest | `frontend/web/vitest.config.ts` |
+
+前后端遵循同一套编写约定（AAA、Mock 注入、隔离外部依赖）。
 
 ### 覆盖率门槛
 
 | 环境 | 门槛 | 配置位置 |
 |------|------|---------|
-| 本地开发 + CI PR | ≥ 60% line coverage | 测试框架配置文件中配置 |
-| CI main push | ≥ 80% line coverage | `.github/workflows/ci.yml` 动态覆盖 |
-| 开发者目标 | ≥ 80% line coverage | 追求目标，不强制阻断 |
+| 本地开发 + CI PR | ≥ 80% line coverage | 测试框架配置文件中配置 |
+| CI main push | ≥ 80% line coverage | `.github/workflows/ci.yml` |
+| 开发者目标 | ≥ 80% line coverage | 追求目标，PR 阻断门槛一致 |
 
 ```bash
-# 后端
+# 后端（Jest）
 cd backend && npm run test:coverage
 
-# 前端
+# 前端（Vitest）
 cd frontend/web && npm run test:unit:coverage
 ```

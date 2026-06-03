@@ -27,6 +27,7 @@ description: 基于已批准的设计实现功能；写代码、单元测试，�
 ### Step 1: 分析
 
 读取 `feature.md`、`design.md`、相关 `us-*.md`、现有代码库。识别可复用组件 / 工具函数。
+如 `test-plan.md` 已产出（Tester 并行阶段），将 P0 用例作为实现边界参考。
 
 ### Step 2: 实现
 
@@ -42,7 +43,16 @@ description: 基于已批准的设计实现功能；写代码、单元测试，�
 3. Refactor：测试保护下优化
 
 测试数据隔离：测试间不共享可变状态，每个测试独立 setup/teardown。
-不必对每个 getter/setter 套 TDD。本地覆盖率追求 ≥80%，底线 ≥60%。
+不必对每个 getter/setter 套 TDD。覆盖率门槛遵循 `.claude/skills/engineering/SKILL.md`。
+
+### Step 3.5: Storybook（条件触发）
+
+当 `feature.md` 声明 `has_storybook: yes` 时：
+
+1. 按 `.claude/skills/storybook-authoring/SKILL.md` 编写 `.stories.tsx`
+2. 必写状态：Default / Filled / Loading / WithErrors（列表组件加 Empty，移动端加 Mobile）
+3. Mock 数据从 `@/mocks` 导入，不在 stories 里硬编码
+4. 本地验证：`cd frontend/web && npm run storybook`，确认所有 stories 无 TS 错误、四种状态可视
 
 ### Step 4: 自检
 
@@ -55,11 +65,9 @@ lint / format / typecheck / test
 
 ### Step 5: PR 与等待
 
-1. 开 PR，按 `.claude/skills/feature-pr-flow/SKILL.md` 写 description
-2. Ping Reviewer + Tester
-3. 等待 PR CI 全绿：`gh run list --branch $(git branch --show-current)`
-4. CI 红 → 本地复现 → 一次性修复 → push → 回到步骤 3
-5. CI 绿 → 更新 `state.md` `ci_status.pr_checks: PASS`
+遵循 `.claude/skills/feature-pr-flow/SKILL.md` 完成：分支推送 → PR 开单 → CI 等待 → 状态更新。
+
+CI 绿后更新 `state.md` `ci_status.pr_checks: PASS`，等待 Reviewer 与 Tester 并行介入。
 
 ### Step 6: 修复（Reviewer / Tester 打回时）
 
@@ -106,7 +114,7 @@ lint / format / typecheck / test
 
 ## 5. 编排契约
 
-### 自维护状态规范（精简）
+### 自维护状态规范
 
 **US 级 state.md**（路径：`docs/backlog/{epic}/{ft}/{us}/state.md`）：
 
@@ -180,5 +188,6 @@ status: success          # success | failed | blocked | needs_human_gate | error
 | 编码规范、目录结构、自检命令 | `.claude/skills/engineering/SKILL.md` |
 | E2E 配合（data-testid） | `.claude/skills/engineering/SKILL.md` |
 | E2E 写作规范 | `.claude/skills/e2e-playwright/SKILL.md` |
+| Storybook 编写 | `.claude/skills/storybook-authoring/SKILL.md` |
 | PR 格式 | `.claude/skills/feature-pr-flow/SKILL.md` |
 | 质量管道分层 | `docs/architecture/quality-pipeline.md` |

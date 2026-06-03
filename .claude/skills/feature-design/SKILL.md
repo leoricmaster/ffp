@@ -1,12 +1,6 @@
 ---
 name: feature-design
-agent: Designer
-triggers:
-  - 起草 feature.md 时
-  - 起草 design.md 时
-  - 变更 API 契约时
 description: feature.md 与 design.md 编写规范——模板、US 拆分原则、API 契约变更流程。
-depends_on: [adr-writing]
 ---
 
 # Feature Design Skill
@@ -31,9 +25,10 @@ Frontmatter 必填：`type/id/epic/title/priority/owner/created`，禁止 `statu
 **AC**:
 - [ ] AC1 #ft-XXX 📅 YYYY-MM-DD
 ## 设计概要（> 150 行拆 design.md）
-## 关联 Flow（无则 —）
-## 架构依赖 & 与现有功能关系
+## 关联 Scenario（无则 —）
+## 与现有功能的关系
 ## Storybook 声明（has_storybook: yes/no）
+## 需求变更记录（设计审批通过后追加）
 ```
 
 ## US 拆分原则
@@ -65,7 +60,7 @@ Frontmatter 必填：`type/id/epic/title/priority/owner/created`，禁止 `statu
 ## 数据模型变更
 ## 关键交互（mermaid 序列图）
 ## 错误处理 & 边界场景
-## Flow 影响（如有）
+## Scenario 影响（如有）
 ```
 
 ## API 契约变更流程

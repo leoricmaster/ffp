@@ -1,17 +1,11 @@
 ---
 name: adr-writing
-agent: Designer + Tester
-triggers:
-  - 需要做架构决策时
-  - 知识沉淀阶段转 ADR 时
 description: ADR（架构决策记录）写作规范——frontmatter schema、status 生命周期、何时写/不写、supersedes 链接方式。
-depends_on: []
-human_doc: docs/architecture/decisions/
 ---
 
 # ADR 写作
 
-> Wave 5-5 起作为 Skill。ADR 模板仍在 `docs/process/templates/adr-template.md`。
+> ADR 模板仍在 `docs/process/templates/adr-template.md`。
 
 ---
 
@@ -33,13 +27,13 @@ human_doc: docs/architecture/decisions/
 ## 2. 命名 & 位置
 
 ```
-docs/architecture/decisions/ADR-XXX-<slug>.md
+docs/decisions/ADR-XXX-<slug>.md
 ```
 
 编号连续递增。查下一个编号：
 
 ```bash
-ls docs/architecture/decisions/ | grep -oE 'ADR-[0-9]+' | sort -u | tail -1
+ls docs/decisions/ | grep -oE 'ADR-[0-9]+' | sort -u | tail -1
 ```
 
 ## 3. Frontmatter Schema（CI 强制，check-adr-schema.js）
@@ -144,4 +138,4 @@ supersededBy: ADR-005
 
 - `docs/process/templates/adr-template.md` — 完整可复制模板
 - `scripts/check-adr-schema.js` — CI 校验
-- `docs/architecture/decisions/` — 既有 ADR（ADR-001..ADR-004）
+- `docs/decisions/` — ADR 存放目录

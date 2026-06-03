@@ -1,14 +1,6 @@
 ---
 name: test-execution
-agent: Tester
-triggers:
-  - 进入 Testing 阶段时
-  - 执行 P0 门禁时
-  - 编写 test-report.md 时
-  - P0 失败后回归验证时
 description: Tester 测试执行阶段的标准操作流程与模板——执行顺序、优先级规则、状态定义、test-report.md 编写规范、P0 失败处理流程、state.md 更新规则。
-depends_on: [test-design-rubric]
-human_doc: docs/architecture/quality-pipeline.md#test-layering
 ---
 
 # Test Execution

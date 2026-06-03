@@ -167,6 +167,11 @@ function checkPathConsistency() {
       correct: "docs/api/openapi.yaml",
       incorrect: "docs/architecture/api/openapi.yaml",
     },
+    {
+      name: "ADR decisions path",
+      correct: "docs/decisions/",
+      incorrect: "docs/architecture/decisions/",
+    },
   ];
 
   const allFiles = [

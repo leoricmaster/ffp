@@ -1,12 +1,6 @@
 ---
 name: test-design-rubric
-agent: Tester
-triggers:
-  - Designed 后设计测试用例时
-  - 评审用例覆盖度时
 description: 测试用例设计 rubric——P0/P1/P2 优先级标准、AC→AT 覆盖矩阵、边界值清单、AT/IT 两视角分工。
-depends_on: []
-human_doc: docs/architecture/quality-pipeline.md#test-layering
 ---
 
 # 测试用例设计 Rubric

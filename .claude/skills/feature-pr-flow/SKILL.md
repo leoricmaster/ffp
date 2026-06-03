@@ -1,14 +1,6 @@
 ---
 name: feature-pr-flow
-agent: Developer
-triggers:
-  - 创建分支时
-  - 提交 commit 时
-  - 开 PR 时
-  - 评审 PR 时
 description: Feature 开发与 PR 工作流——分支命名、Conventional Commits、PR description 模板、CI 门禁、合并规则。Hard rule：所有 commit 必须走 PR，不准直接推 main。
-depends_on: []
-human_doc: docs/process/feature-flow.md#pr-workflow
 ---
 
 # Feature / PR 工作流
@@ -28,7 +20,7 @@ human_doc: docs/process/feature-flow.md#pr-workflow
 | 类型 | 格式 | 示例 |
 |------|------|------|
 | Feature | `feature/ft-XXX-<slug>` | `feature/ft-004-user-profile` |
-| Bug | `fix/bg-XXX-<slug>` | `fix/bg-001-login-error` |
+| Defect | `fix/de-XXX-<slug>` | `fix/de-001-login-error` |
 | Tech Debt | `refactor/td-XXX-<slug>` | `refactor/td-001-openapi-categories` |
 | Hotfix | `hotfix/<slug>` | `hotfix/critical-security` |
 | Docs | `docs/<slug>` | `docs/update-readme` |
@@ -97,7 +89,7 @@ git push origin --delete feature/ft-004-<slug>
 | Type | Scope 示例 | 说明 |
 |------|-----------|------|
 | `feat` | `feat(auth)` | 新功能（Feature PR） |
-| `fix` | `fix(bg-001)` | Bug 修复 |
+| `fix` | `fix(de-001)` | Bug 修复 |
 | `refactor` | `refactor(td-001)` | 重构 / 偿还技术债 |
 | `perf` | `perf(api)` | 性能 |
 | `docs` | `docs(readme)` | 文档 |
@@ -175,7 +167,7 @@ PR 自动跑：
 | Flow Conformance | `.claude/hooks/` 流程合规检查 |
 | Lint | 前 / 后端 |
 | Typecheck | TypeScript |
-| Unit | Jest / Vitest |
+| Unit | 后端 Jest / 前端 Vitest |
 | Contract | API 契约 |
 | Integration | 集成 |
 | E2E（如适用） | Playwright |

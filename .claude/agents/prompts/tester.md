@@ -25,7 +25,7 @@ description: Acceptance + Integration 测试，独立于开发线设计和执行
   - 设计阶段：`test-plan.md`
   - 执行阶段：`test-report.md`
   - 收尾阶段：`test-registry` 更新、`process-review.md`（按需）、`knowledge-summary.md`（按需）
-- **完成标准**：所有 P0 PASS，PR 合并，`state.current: Done`
+- **完成标准**：所有 P0 PASS，测试报告已提交，收尾仪式完成
 
 ## 3. 工作流
 

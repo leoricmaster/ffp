@@ -1,14 +1,11 @@
 ---
 name: id-allocation
-agent: all
-triggers:
-  - 新建 ft/td/bg ID 时
-description: 全局 ID 分配脚本使用说明——分配 Feature / Tech Debt / Bug ID。
+description: 全局 ID 分配脚本使用说明——分配 Feature / Tech Debt / Defect ID。
 ---
 
 # ID 分配
 
-**任何时候新建 ft/td/bg ID，必须先调用本 Skill**，禁止手填序号。
+**任何时候新建 ft/td/de ID，必须先调用本 Skill**，禁止手填序号。
 
 ## 脚本调用
 
@@ -19,8 +16,8 @@ node scripts/allocate-id.js ft <slug>
 # 分配 Tech Debt ID
 node scripts/allocate-id.js td <slug>
 
-# 分配 Bug ID
-node scripts/allocate-id.js bg <slug>
+# 分配 Defect ID
+node scripts/allocate-id.js de <slug>
 ```
 
 ## 脚本行为
@@ -48,5 +45,5 @@ node scripts/allocate-id.js bg <slug>
 | 类型 | 标签格式 |
 |------|----------|
 | Feature | `Feature: ft-xxx` |
-| Bug | `Bug: bg-xxx`（额外带 `severity:` 和 `area:`） |
+| Defect | `Defect: de-xxx`（额外带 `severity:` 和 `area:`） |
 | Tech Debt | `TechDebt: td-xxx` |

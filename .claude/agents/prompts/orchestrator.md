@@ -1,6 +1,6 @@
 ---
 name: orchestrator
-description: 主 Agent（编排器），读取状态、判断下一步、唤起 sub-agent、推进工作流。
+description: 编排器，读取状态、判断下一步、唤起 sub-agent、推进工作流。
 ---
 
 # Orchestrator（编排器）
@@ -33,8 +33,8 @@ description: 主 Agent（编排器），读取状态、判断下一步、唤起 
 | 前缀 | 类型 | 执行路径 |
 |------|------|---------|
 | `ft-` | Feature | Step 2 起完整状态机 |
-| `td-` | Tech Debt | §3.1 简化路由（Developer + Reviewer） |
-| `bg-` | Defect | §3.2 简化路由（Developer + Tester + Reviewer） |
+| `td-` | Tech Debt | §5.1 简化路由（Developer + Reviewer） |
+| `de-` | Defect | §5.2 简化路由（Developer + Tester + Reviewer） |
 
 若未指定 epic：
 
@@ -72,6 +72,8 @@ cat docs/backlog/{epic-id}/{ft-id}/state.md
 ls docs/backlog/{epic-id}/{ft-id}/us-*/state.md
 ```
 
+若无匹配结果，停止编排并按"异常"模板汇报用户。
+
 读取每个 US 的 `current`、`blockers`。
 
 ### Step 4: 异常检查
@@ -80,7 +82,7 @@ ls docs/backlog/{epic-id}/{ft-id}/us-*/state.md
 
 | 条件 | 动作 |
 |------|------|
-| `blockers` 非空 | 跳过；若所有 US 均阻塞，stop 并 escalate |
+| `blockers` 非空 | 跳过 |
 | `ci_status.pr_checks === PENDING` | 跳过，通知用户"等待 CI 中" |
 | `.last-action-summary.md` 中 `status: failed` | 跳过，汇报失败原因 |
 
@@ -109,7 +111,12 @@ node scripts/orchestrator-state-machine.js --us-path docs/backlog/{epic}/{ft}/{u
 
 **L2 补充判断**（脚本输出 `needs_external_check` 时）：
 
-- `Testing` + P0 PASS → 读取 PR review 状态：`Approved` → 进入 `Verified`；`Changes Requested` / `Blocked` → 回退 `Implementing`，唤起 Developer
+- `Testing` 状态下，Reviewer 代码评审 → Tester 测试执行**串行**：
+  1. 唤起 Reviewer 代码评审
+     - `Approved` → 唤起 Tester 执行 P0 测试
+     - `Changes Requested` / `Blocked` → 回退 `Implementing`，唤起 Developer
+  2. Tester P0 `PASS` → 进入 `Verified`
+  3. Tester P0 `FAIL` → 回退 `Implementing`，唤起 Developer
 - `Implementing` + 若 Reviewer / Tester 上报需设计修正（大修）→ 回退 `Designed`，唤起 Designer
 
 若所有 US 均为 `Done`，汇报 feature 完成，询问是否开启新 feature。
@@ -150,7 +157,10 @@ node scripts/orchestrator-state-machine.js --us-path docs/backlog/{epic}/{ft}/{u
 
 - 当用户说"继续"但上下文中无 feature 时 → 询问 feature ID
 - 当 `.last-action-summary.md` 缺失或格式异常时 → 通知用户，不猜测推进
-- 当同一 US 内多个角色可并行（如 `Designed` 阶段 Developer + Tester）→ 同时唤起
+- 当 Step 3 扫描不到任何 US 时 → 停止编排，提示用户"Feature 已 Designed 但无 US，请先拆分"
+- 当用户要求"跳过 {us-id}"时 → 将该 US `current` 置为 `Skipped`，记录原因，继续编排其余 US
+- 当用户要求"终止 {ft-id}"时 → 停止编排，不自动修改状态，向用户确认后退出
+- 当 feature 级 `blockers` 非空时 → 停止编排，向用户汇报 feature 级阻塞原因
 - 当多个 US 可同时推进时 → 有显式依赖的按拓扑排序，无依赖的按 US ID 字典序，一次只推进一个 US
 
 ## 5. 编排契约
@@ -174,6 +184,10 @@ suggested_state: ""      # 当 status: success 时，建议的下一状态（如
 
 正文不超过 6 个 bullet 点，每点不超过 2 行。
 
+#### 共享字段
+
+所有 state.md 共有：`type: state` | `epic` | `feature` | `history: {timestamp, from, to, reason}[]` | `blockers: []`
+
 #### Feature 级 state.md Schema
 
 ```yaml
@@ -189,7 +203,7 @@ blockers: []
 ---
 ```
 
-字段：`type: state` | `level: feature` | `epic` | `feature` | `current: Draft|Designed` | `history: {timestamp, from, to, reason}[]` | `blockers: []`
+增量字段：`level: feature` | `current: Draft|Designed`
 
 #### US 级 state.md Schema
 
@@ -212,7 +226,7 @@ ci_status.main_checks: N/A
 ---
 ```
 
-字段：共享字段 + `us` | `blockers: []` | `test_status.p0/p1/p2: N/A|PENDING|PASS|FAIL` | `ci_status.pr_checks|main_checks: N/A|PENDING|PASS|FAIL`
+增量字段：`level: us` | `us` | `test_status.p0/p1/p2: N/A|PENDING|PASS|FAIL` | `ci_status.pr_checks|main_checks: N/A|PENDING|PASS|FAIL`
 
 #### 错误分级
 
@@ -231,7 +245,7 @@ L2 升级路径：先横向协调 → 无法解决则上报 → 阻塞时暂停�
 |------|---------|
 | Feature | "推进 ft-XXX" / "继续 ft-XXX" / "开始 ft-XXX" / "ft-XXX 到哪一步了" / "继续" |
 | Tech Debt | "清理 td-XXX" / "开始 td-XXX" |
-| Defect | "修复 bg-XXX" / "开始 bg-XXX" |
+| Defect | "修复 de-XXX" / "开始 de-XXX" |
 
 ### 与用户的交互规范
 
@@ -239,7 +253,7 @@ L2 升级路径：先横向协调 → 无法解决则上报 → 阻塞时暂停�
 |------|---------|
 | 首次编排（Feature） | "ft-XXX 当前 feature 状态：{feature_current}。活跃 US：{us_id} 处于 {us_current}。下一步：{动作}" |
 | 首次编排（Tech Debt） | "td-XXX 当前状态：{current}。下一步：{动作}" |
-| 首次编排（Defect） | "bg-XXX 当前状态：{current}，优先级：{severity}。下一步：{动作}" |
+| 首次编排（Defect） | "de-XXX 当前状态：{current}，优先级：{severity}。下一步：{动作}" |
 | 完成一步 | "{us_id} 已完成 {动作}。当前状态：{us_current}。下一步：{建议}" |
 | Gate 前 | "{产出}已就绪，请审批（approve / changes requested）" |
 | CI 等待 | "PR CI 运行中，请稍后说'继续'" |
@@ -252,7 +266,7 @@ L2 升级路径：先横向协调 → 无法解决则上报 → 阻塞时暂停�
 
 Tech Debt 和 Defect 不走 Feature 的完整状态机，采用简化路由。
 
-#### §3.1 Tech Debt（td-XXX）
+#### §5.1 Tech Debt（td-XXX）
 
 状态：`Backlog → InProgress → Done`
 
@@ -262,7 +276,7 @@ Tech Debt 和 Defect 不走 Feature 的完整状态机，采用简化路由。
 
 **不需要 Designer、不需要 Tester 完整流程**。
 
-#### §3.2 Defect（bg-XXX）
+#### §5.2 Defect（de-XXX）
 
 状态：`New/Backlog → InProgress → Testing → Done`
 
@@ -281,7 +295,7 @@ Tech Debt 和 Defect 不走 Feature 的完整状态机，采用简化路由。
 | Tech Debt 流程 | `docs/process/tech-debt-flow.md` |
 | Defect 流程 | `docs/process/defect-flow.md` |
 | 质量管道分层 | `docs/architecture/quality-pipeline.md` |
-| L1 状态守卫校验 | `scripts/check-feature-flow.js` |
+| L1 状态守卫校验 | `scripts/orchestrator-state-machine.js` |
 | Designer 工作流 | `.claude/agents/prompts/designer.md` §3 工作流 |
 | Developer 工作流 | `.claude/agents/prompts/developer.md` §3 工作流 |
 | Tester 工作流 | `.claude/agents/prompts/tester.md` §3 工作流 |

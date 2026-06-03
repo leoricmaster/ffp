@@ -1,10 +1,6 @@
 ---
 name: code-review
-agent: Reviewer
-triggers:
-  - PR 代码评审时
 description: 代码评审规范——checklist、flow 一致性、4 条红线。
-depends_on: [engineering]
 ---
 
 # Code Review Skill
