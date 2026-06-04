@@ -67,9 +67,11 @@ graph LR
 
 | 实体 | 说明 | 状态 | 相关 Feature |
 |------|------|------|-------------|
-| User | 用户账户 | 待设计 | — |
-| Family | 家庭（租户隔离单元） | 待设计 | — |
-| FamilyMember | 用户与家庭的多对多关系 | 待设计 | — |
+| User | 用户账户 | ft-001 | ft-001 |
+| Family | 家庭（租户隔离单元） | ft-001 | ft-001 |
+| FamilyMember | 用户与家庭的多对多关系 | ft-001 | ft-001 |
+| RefreshToken | 刷新令牌与 Token Rotation 链 | ft-001 | ft-001 |
+| AuditLog | 认证与敏感操作审计日志 | ft-001 | ft-001 |
 | TransactionCategory | 收入/支出二级分类 | 待设计 | — |
 | AccountType | 资产/负债类型分类 | 待设计 | — |
 | Transaction | 收入/支出交易记录 | 待设计 | — |
@@ -98,6 +100,8 @@ erDiagram
     Family ||--o{ FamilyMember : members
     Family ||--o{ TransactionCategory : transaction_categories
     Family ||--o{ AccountType : account_types
+    User ||--o{ RefreshToken : owns
+    User ||--o{ AuditLog : generates
     FamilyMember ||--o{ Transaction : transactions
     FamilyMember ||--o{ Account : accounts
     TransactionCategory ||--o{ Transaction : transactions
@@ -112,6 +116,8 @@ erDiagram
 | Family → FamilyMember | 1:N | 一个家庭可有多个成员 |
 | Family → TransactionCategory | 1:N | 每个家庭独立定义交易分类 |
 | Family → AccountType | 1:N | 每个家庭独立定义账户类型 |
+| User → RefreshToken | 1:N | 一个用户可拥有多个 token family（每次登出或重放检测会撤销 family） |
+| User → AuditLog | 1:N | 一个用户的认证/敏感操作产生多条审计记录 |
 | FamilyMember → Transaction | 1:N | 一个成员可记录多笔交易 |
 | FamilyMember → Account | 1:N | 一个成员可记录多个账户余额 |
 | TransactionCategory → Transaction | 1:N | 一个分类下有多笔交易 |
@@ -134,23 +140,25 @@ erDiagram
 |------|------|------|----------|
 | id | UUID | 是 | 用户唯一标识 |
 | email | String | 是 | 登录邮箱，全局唯一 |
-| username | String | 是 | 用户昵称 |
-| password_hash | String | 是 | bcrypt 加密后的密码 |
+| username | String | 是 | 用户昵称（注册时未传则由 email 前缀派生） |
+| password_hash | String | 是 | Argon2id 哈希后的密码（参数 m=19MiB, t=2, p=1, salt≥16B） |
 | phone | String | 否 | 手机号 |
 | avatar | String | 否 | 头像 URL |
 | status | UserStatus | 是 | 账户状态：active / inactive / locked |
 | role | String | 是 | 角色：user / admin / super_admin |
 | current_family_id | UUID | 否 | 当前活跃家庭 ID |
 | default_family_id | UUID | 否 | 默认家庭 ID（首个创建的家庭） |
+| privacy_policy_accepted_at | Timestamp | 是 | 用户协议与隐私政策同意时间（MVP 必填，注册时必勾） |
+| failed_login_count | Int | 是 | 连续登录失败计数（达到 5 后锁定 15min） |
+| locked_until | Timestamp | 否 | 账户锁定解除时间 |
 
 **状态机**：
 
 ```mermaid
 stateDiagram-v2
-    [*] --> PENDING: 注册
-    PENDING --> ACTIVE: 邮箱验证通过
-    ACTIVE --> LOCKED: 多次登录失败
-    LOCKED --> ACTIVE: 管理员解锁 / 自助解锁
+    [*] --> ACTIVE: 注册（MVP 简化无邮箱验证）
+    ACTIVE --> LOCKED: 连续 5 次登录失败
+    LOCKED --> ACTIVE: 锁定时间到期 / 管理员解锁
     ACTIVE --> INACTIVE: 用户注销
     INACTIVE --> ACTIVE: 重新激活
 ```
@@ -159,6 +167,8 @@ stateDiagram-v2
 
 - 支持一个用户同时只加入一个家庭（`current_family_id`）
 - 用户创建的首个家庭作为默认家庭（`default_family_id`），退出其他家庭后自动回到默认家庭
+- 密码哈希使用 Argon2id（id variant），per-user 随机 salt，hash 输出含完整参数与 salt 以便未来调参
+- 注册时 `privacy_policy_accepted_at` 必填（前端勾选 → 后端写时间戳），审计场景下可证明用户已同意协议
 
 ---
 
@@ -216,9 +226,76 @@ stateDiagram-v2
 - 多租户隔离的核心表，所有业务数据通过 `family_id` 隔离
 - 支持用户在不同家庭间切换（当前业务约束为同时只能加入一个家庭）
 
+### 5.4 RefreshToken（刷新令牌）
+
+Refresh Token Rotation 链的载体，支持 family 重放检测与 HKDF 派生。
+
+**核心属性**：
+
+| 属性 | 类型 | 必填 | 业务含义 |
+|------|------|------|----------|
+| id | UUID | 是 | 令牌记录唯一标识 |
+| user_id | UUID | 是 | 所属用户 |
+| token_family_id | UUID | 是 | Token 链族 ID（同一次登录产生的所有 refreshToken 共享 family） |
+| parent_id | UUID | 否 | 父令牌 ID（轮换链上的上一个 token） |
+| token_hash | String | 是 | refreshToken 的 SHA-256 哈希（**不存明文**） |
+| issued_at | Timestamp | 是 | 颁发时间 |
+| expires_at | Timestamp | 是 | 过期时间（颁发时间 + 7d） |
+| revoked_at | Timestamp | 否 | 撤销时间（登出或重放检测触发） |
+| revoked_reason | String | 否 | 撤销原因：USER_LOGOUT / TOKEN_REUSED / ADMIN_REVOKE / EXPIRED |
+| user_agent | String | 否 | 颁发时的 UA |
+| ip_address | String | 否 | 颁发时的客户端 IP |
+
+**Token 派生与校验**：
+
+- 原始 refreshToken 是 base64url 编码的 256-bit 随机数（**仅在 Set-Cookie 时返回一次**）
+- 派生密钥使用 HKDF-SHA256，输入：用户主密钥（来自 JWT Secret）+ token_family_id → 输出：token_hash
+- 校验流程：客户端携带 Cookie → 后端读取 token → HKDF 派生 hash → DB 查询匹配 → 通过则颁发新 token，撤销旧 token
+
+**重放检测（family replay）**：
+
+- 当一个已被撤销的 refreshToken 再次出现 → 撤销整个 token_family_id 下所有未到期 token → 强制用户重新登录
+- 撤销原因记录为 `TOKEN_REUSED`，触发审计日志（ALERT 级）
+
+**设计要点**：
+
+- refreshToken 在 DB 中只存 SHA-256 哈希，DB 泄露不会导致 token 泄露
+- token_family_id 隔离不同登录会话（如用户在两个浏览器同时登录 → 两个 family）
+- 物理删除策略：expires_at < now() - 30d 的记录可定期清理（运维 job，独立 TD）
+
 ---
 
-### 5.4 TransactionCategory（交易分类）
+### 5.5 AuditLog（审计日志）
+
+认证与敏感操作的可追溯记录，用于安全审计、异常检测、合规取证。
+
+**核心属性**：
+
+| 属性 | 类型 | 必填 | 业务含义 |
+|------|------|------|----------|
+| id | BigInt | 是 | 自增主键 |
+| user_id | UUID | 否 | 操作用户（匿名操作可为空） |
+| event_type | String | 是 | 事件类型：REGISTER / LOGIN_SUCCESS / LOGIN_FAIL / LOGOUT / REFRESH / TOKEN_REUSED / PASSWORD_CHANGE 等 |
+| event_status | String | 是 | 事件状态：SUCCESS / FAIL / BLOCKED |
+| ip_address | String | 否 | 客户端 IP |
+| user_agent | String | 否 | 客户端 UA |
+| metadata | JSON | 否 | 事件附加信息（如失败原因、user_agent 详情） |
+| created_at | Timestamp | 是 | 发生时间（默认 NOW()） |
+
+**保留策略**：
+
+- **保留周期：180 天**（与 scn-001 业务规则一致）
+- 180 天后由定时 job 物理删除（独立 TD：审计日志保留策略）
+- 软删除不适用——审计日志本身就是只追加写入，不应被业务方修改
+
+**敏感信息保护**：
+
+- **禁止**记录：accessToken 明文、refreshToken 明文、原始密码、密码哈希
+- IP 与 UA 可记录，但需要脱敏后用于分析（如 IP 末位归零）
+
+---
+
+### 5.6 TransactionCategory（交易分类）
 
 收入/支出的二级分类体系。
 
@@ -245,7 +322,7 @@ stateDiagram-v2
 
 ---
 
-### 5.5 AccountType（账户类型）
+### 5.7 AccountType（账户类型）
 
 资产/负债的类型分类体系。
 
@@ -269,7 +346,7 @@ stateDiagram-v2
 
 ---
 
-### 5.6 Transaction（交易记录）
+### 5.8 Transaction（交易记录）
 
 收入/支出流水记录。
 
@@ -299,7 +376,7 @@ Transaction -->> TransactionCategory (category_id, required)
 
 ---
 
-### 5.7 Account（账户记录）
+### 5.9 Account（账户记录）
 
 资产/负债余额快照记录。
 
@@ -377,6 +454,7 @@ Account -->> AccountType (account_type_id, required)
 > 本节在数据库 schema 和模块结构确定后补充。
 >
 > 需记录内容：
+>
 > - 数据库 schema 文件位置与 ORM 选型
 > - 实体与后端模块/前端页面的对应关系
 > - 常用的 schema 管理命令

@@ -102,3 +102,50 @@ design.md 涉及以下修改时触发架构审批 Gate：
 - CI/CD 流程变更
 - 新增外部依赖
 - 跨越已有系统边界
+
+## ft 完整性原则（核心约束）
+
+**每个 ft 应做到"设计-实现-契约三一致"，不在 ft 内部留下"已知不一致"的尾巴。**
+
+### 禁止登记为 TD（必须在本 ft 内解决）
+
+以下事项**不允许**登记为 Tech Debt，必须在本 ft 工作量内完成：
+
+| 类别 | 例子 |
+|------|------|
+| 本 ft 决策导致的 OpenAPI 字段/枚举/默认值变更 | TD-A 隐私字段、TD-B 错误码枚举、TD-C expiresIn default |
+| 本 ft 决策导致的 data-model 字段/约束变更 | 必填字段补充、约束条件调整 |
+| 本 ft 决策导致的 scenario 步骤/契约调整 | scn-001 步骤细化 |
+| 本 ft 决策涉及的安全/性能基线项 | CORS 配置、JWT Secret 管理、限流参数 |
+| 本 ft 决策涉及的前后端契约一致性 | 前端 token 存储、API 路径、错误格式 |
+
+**判断标准**：如果不做会导致「**本 ft 上线时存在内部不一致**」，就必须在本 ft 内做对。
+
+### 允许登记为 TD（需说明分类理由）
+
+以下事项**可以**登记为 Tech Debt：
+
+| 类别 | 分类理由 | 例子 |
+|------|---------|------|
+| 跨 ft 的基础设施决策 | 不在 MVP 范围，独立 Epic | ORM 选型（TD-H）、Redis 引入（TD-E）、OTel 接入（TD-F） |
+| 运维/治理类 | 周期性 job / 长期策略 | 审计日志保留、PII 清理 job（TD-G） |
+| 文档同步类 | 知识沉淀 | ADR 起草（TD-D） |
+| 范围升级但与本 ft 决策无关 | 不在 MVP 范围，未来可拆 US | 二级分类、API 字段补全（如非 ft 决策直接结果） |
+
+### 分类流程
+
+1. Designer 列 TD 候选时，对每条标注分类：**ft 内必做** / **ft 外延后**
+2. **ft 内必做**类必须合并入 feature.md AC（修订 AC 列表），不登记为 TD
+3. **ft 外延后**类登记到 .last-action-summary.md 的「Tech Debt 登记」段，必须说明分类理由
+4. Reviewer 复评时验证：ft 内部不一致项应 = 0，否则打回
+
+### 反例（ft-001 v2 教训）
+
+v2 设计把以下"ft 内必做"类误登记为 TD：
+
+- TD-A（OpenAPI 补 privacyPolicyAccepted）→ 应在 v2 直接修 openapi.yaml
+- TD-B（OpenAPI 错误码补枚举）→ 应在 v2 直接修
+- TD-C（expiresIn default 改 900）→ 应在 v2 直接修
+- TD-I（密码黑名单 Bloom filter）→ 应在 v2 内做（不引入 Bloom filter 也应实现基础黑名单）
+
+正确做法：v2 直接修订 OpenAPI + design.md，仅将 TD-D/E/F/G/H 登记为「ft 外延后」类。
