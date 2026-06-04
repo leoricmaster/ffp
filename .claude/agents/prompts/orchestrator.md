@@ -67,12 +67,61 @@ cat docs/backlog/{epic-id}/{ft-id}/state.md
 | `Draft` | 唤起 Designer |
 | `Designed` | 进入 Step 3 |
 
-**Designer 完成后**：读取 `.last-action-summary.md`。
+**Designer 完成后**：读取 `.last-action-summary.md`，解析 `status`：
 
-- `status: needs_human_gate` → 向用户提交设计方案审批
+- `status: success` → **进入"架构评审 Gate"**（Reviewer 评审先于用户审批）
+
+  **必审判断**（基于 feature.md / design.md 内容）：
+
+  | 命中条件 | 处理 |
+  |---------|------|
+  | 引入新技术 / 新模块 / 新表 | 必审 |
+  | 改现有路由 / API 契约 / OpenAPI 增删改端点 | 必审 |
+  | data-model 变更 / 新增外部依赖 / 跨越系统边界 | 必审 |
+  | 用户问"架构靠谱吗" | 必审 |
+  | 复用既有模式 + 纯页面拼装 + 无新增 API/数据模型 | 跳过（Designer 自审） |
+
+  - **命中必审** → 唤起 Reviewer 执行 `Mode 1: 架构评审`（按 `.claude/skills/design-review/SKILL.md`）
+    - Reviewer `Approved` / `Approved with minor` → 继续到用户审批 Gate
+    - Reviewer `Changes Requested` → 重新唤起 Designer
+  - **未命中必审** → 直接跳到用户审批 Gate
+
+  **用户审批 Gate**（Reviewer 通过后，或跳过必审后）—— **必须按以下模板摆出三类信息供用户决策**：
+
+  ```markdown
+  ## ⚠️ 请审批设计方案
+
+  ### 交互设计评审（仅当命中 Designer §阶段 1 触发条件时展示）
+  - 关键页面清单 + 交互状态：{Default / Filled / Loading / WithErrors / Empty}
+  - 关键交互流程：{mermaid 状态图 / 线框图 / Storybook 故事集链接}
+  - 视觉/交互约束：{响应式 / a11y / 第三方组件}
+  - 评审入口：{Storybook URL / mockup 路径}
+
+  ### v1 评审问题解决情况
+  - [BLOCKER] X 项：全部已解决
+  - [CONCERN] Y 项：全部已解决/已澄清
+
+  ### 本 ft 内必做（来自 Reviewer minor 项 + Designer 重分类）
+  | 项 | 业务影响 | 处理成本 |
+  |----|---------|---------|
+  | {项名} | {如果现在不处理的业务/技术后果} | {≤ 1 行 / ≤ 1 小时 / ...} |
+
+  ### ft 外延后（已分类登记为 TD）
+  | TD | 分类理由 | 优先级 |
+  |----|---------|--------|
+  | {TD-X} | {基础设施 / 跨 ft 决策 / 运维 / 文档} | 高/中/低 |
+
+  ### 决策
+  - **approve**：进入 Step 3 唤起 Developer（含本 ft 内必做项）
+  - **changes requested**：重新唤起 Designer
+  ```
+
   - approve → 更新 `state.current: Designed`，进入 Step 3
   - changes requested → 重新唤起 Designer
+- `status: needs_human_gate` → 同上，先进架构评审 Gate（必审判断），再走用户审批
 - `status: failed` → 读取 blockers 写入 feature 级 state，escalate 给用户
+- `.last-action-summary.md` 缺失或格式异常 → 停止，通知用户"Designer 产出物不完整，请检查"，不猜测推进
+- **Reviewer minor 项未带业务影响/处理成本/推荐处置三段式** → 唤回 Reviewer 补全，不进入用户审批 Gate
 
 ### Step 3: 扫描 US 级状态
 
@@ -174,6 +223,9 @@ node scripts/orchestrator-state-machine.js --us-path docs/backlog/{epic}/{ft}/{u
 - 当用户要求"终止 {ft-id}"时 → 停止编排，不自动修改状态，向用户确认后退出
 - 当 feature 级 `blockers` 非空时 → 停止编排，向用户汇报 feature 级阻塞原因
 - 当多个 US 可同时推进时 → 有显式依赖的按拓扑排序，无依赖的按 US ID 字典序，一次只推进一个 US
+- **当 Designer 登记 TD 候选时未分类或把"ft 内必做"类误登记为 TD** → 唤回 Designer 重分类，遵循 `.claude/skills/feature-design/SKILL.md` ft 完整性原则
+- **当 Reviewer minor 项缺业务影响/处理成本/推荐处置三段式** → 唤回 Reviewer 补全
+- **当用户审批 Gate 时** → 必须摆出「本 ft 内必做」+「ft 外延后 TD」+「minor 业务影响」三类信息，不能仅给"approve / changes requested"
 
 ## 5. 编排契约
 
