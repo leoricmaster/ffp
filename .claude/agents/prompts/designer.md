@@ -100,7 +100,17 @@ grep -E -l "<领域词1>|<领域词2>|<领域词3>" docs/decisions/*.md 2>/dev/n
 - [ ] 已评估性能影响（响应时间预期、大数据量处理策略），无影响则显式声明
 - [ ] 涉及 scenario T2 步骤调整的已标记影响范围
 - [ ] 涉及 scenario T3 契约/Actor 变更的已触发架构审批并输出下游更新清单
+- [ ] **登记的 TD 候选已分类为「ft 内必做」/「ft 外延后」**
+- [ ] **「ft 内必做」类已合并入本 ft 工作量**（不登记为 TD）
+- [ ] **OpenAPI / data-model / scenario 三者完全一致**（不一致要么修订上游文档，要么显式声明偏差且在 feature.md 登记 T3）
 - [ ] `.last-action-summary.md` 已写入
+
+**TD 候选分类规则**（详见 `.claude/skills/feature-design/SKILL.md` ft 完整性原则）：
+
+| 分类 | 定义 | 处理 |
+|------|------|------|
+| **ft 内必做** | 本 ft 决策的直接结果（OpenAPI 字段/枚举/默认值、data-model 字段、scenario 步骤） | **不登记为 TD**，合并入本 ft AC |
+| **ft 外延后** | 独立基础设施决策、跨 ft 架构变更、运维/治理类、文档同步类 | 登记为 TD，必须说明分类理由 |
 
 ## 4. 约束
 

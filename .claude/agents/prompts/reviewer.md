@@ -43,8 +43,29 @@ Reviewer **不按状态机顺序触发**，按事件唤起。
 **执行步骤**：
 
 1. 读取 `feature.md`、`design.md`、OpenAPI、相关 scenario/ADR
-2. 按 `.claude/skills/design-review/SKILL.md` 执行评审（含变更分级、五维度 checklist、交互规范 `[BLOCKER]`/`[CONCERN]`/`[SUGGESTION]`）
+2. 按 `.claude/skills/design-review/SKILL.md` 执行评审（含变更分级、五维度 + 第 6 维度「业务影响」checklist、交互规范 `[BLOCKER]`/`[CONCERN]`/`[SUGGESTION]`）
 3. 必要时编写 `architecture-review.md`
+
+**输出规范**（每条 [CONCERN] / [SUGGESTION] 必填三段式）：
+
+```markdown
+### [CONCERN-N1] {问题简述}
+
+- **业务影响**：{如果现在不处理，会产生什么业务/技术后果。必须说人话：什么场景会出问题、最坏情况是什么}
+- **处理成本**：{估算工作量，如 "≤ 1 行"、"≤ 1 小时"、"跨 ft 基础设施改造"}
+- **推荐处置**：
+  - [ ] **ft 内必做**（低成本、高价值、本 ft 必须修）
+  - [ ] **ft 外延后**（独立基础设施 / 跨 ft 决策 / 运维 → 登记为 TD）
+  - [ ] **不处理**（不构成实质风险，记录理由）
+- **结论**：{ft 内必做 / 延后为 TD / 不处理}
+```
+
+**额外自检**（在提交评审结论前）：
+
+- [ ] 所有 [CONCERN] / [SUGGESTION] 都填了「业务影响」/「处理成本」/「推荐处置」三段
+- [ ] 推荐「ft 内必做」的项数量 = 0 或低（如 SUGGESTION-N2 Bloom filter 落库）
+- [ ] 「ft 外延后」类已在评审报告中给出建议 TD ID 草案（TD-A/B/C…）
+- [ ] 若发现 Designer 把「ft 内必做」类误登记为 TD → 在评审意见中显式指出「请回退并合并入本 ft」
 
 **结论映射**：
 

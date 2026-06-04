@@ -46,6 +46,15 @@ paths:
       description: |
         创建新用户账号，账户立即可用无需邮箱验证（MVP简化）
 
+        注册流程为单个数据库事务（READ COMMITTED），user + family + family_member + 默认分类（INCOME/EXPENSE）一次落库，任一失败整体回滚。
+
+        限流规则：
+        - 每 IP 每小时 ≤ 20 次（429 RATE_LIMIT_EXCEEDED）
+        - 每邮箱每天 ≤ 5 次（429 RATE_LIMIT_EXCEEDED）
+
+        幂等性：以 email 为幂等键，5 分钟内重复提交同一 email 返回相同结果。
+        隐私合规：必须显式勾选 privacyPolicyAccepted=true，否则 400 INVALID_PRIVACY_CONSENT。
+
         注意：注册时会自动为用户创建默认家庭（后台操作），家庭信息可通过
         登录后的 /api/v1/users/me 接口获取
       operationId: registerUser
@@ -64,13 +73,19 @@ paths:
               schema:
                 $ref: '#/components/schemas/AuthResponse'
         '400':
-          description: 请求参数错误
+          description: 请求参数错误（含 INVALID_PRIVACY_CONSENT / WEAK_PASSWORD / 邮箱已存在等）
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '409':
-          description: 用户已存在
+          description: 邮箱已注册（仅在幂等窗口外返回）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: 请求过于频繁（IP 或邮箱级别限流触发）
           content:
             application/json:
               schema:
@@ -81,7 +96,15 @@ paths:
       tags:
         - Authentication
       summary: 用户登录
-      description: 验证用户凭证，创建用户会话
+      description: |
+        验证用户凭证，创建用户会话。
+
+        限流规则：
+        - 每 IP 每小时 ≤ 60 次（429 RATE_LIMIT_EXCEEDED）
+        - 同一账户连续 5 次失败后锁定 15 分钟（423 ACCOUNT_LOCKED）
+
+        成功响应中 Set-Cookie 下发 refreshToken，标记 httpOnly; Secure; SameSite=Lax; Path=/api/v1/auth; Max-Age=604800（7 天）。
+        accessToken 有效期 15 分钟（exp=900），存于响应 body。
       operationId: loginUser
       security: []
       requestBody:
@@ -104,7 +127,33 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '401':
-          description: 用户凭证错误
+          description: 用户凭证错误（INVALID_CREDENTIALS）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '423':
+          description: |
+            账户被锁定（ACCOUNT_LOCKED，连续失败 5 次）
+
+            锁定到期时间（locked_until）通过 `error.details[]` 承载：
+            - `field=lockedUntil, value=ISO8601 时间戳`
+            - 前端据此展示「请于 X 时间后重试」并禁用提交按钮至该时刻
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error:
+                  code: "ACCOUNT_LOCKED"
+                  message: "账户已锁定，请 15 分钟后重试"
+                  details:
+                    - field: "lockedUntil"
+                      message: "账户锁定到期时间（ISO8601）"
+                      value: "2026-06-04T12:34:56Z"
+        '429':
+          description: 请求过于频繁（IP 级别限流触发）
           content:
             application/json:
               schema:
@@ -115,7 +164,13 @@ paths:
       tags:
         - Authentication
       summary: 用户登出
-      description: 销毁用户会话，使令牌失效。refreshToken 从 httpOnly Cookie 中自动读取。
+      description: |
+        销毁用户会话，使令牌失效。refreshToken 从 httpOnly Cookie 中自动读取，无需在 body 中传递。
+
+        登出行为：
+        - 撤销当前 refreshToken（标记为已撤销）
+        - 清除 Set-Cookie（Max-Age=0）
+        - 前端同步清理内存中的 accessToken
       operationId: logoutUser
       security:
         - bearerAuth: []
@@ -144,7 +199,15 @@ paths:
       tags:
         - Authentication
       summary: 刷新令牌
-      description: 使用刷新令牌获取新的访问令牌。refreshToken 从 httpOnly Cookie 中自动读取。
+      description: |
+        使用刷新令牌获取新的访问令牌。refreshToken 从 httpOnly Cookie 中自动读取。
+
+        安全策略：
+        - 每次刷新后下发新 refreshToken 并使旧 Token 失效（Refresh Token Rotation）
+        - 检测到旧 Token 重放时撤销整个 token family 并强制重新登录（401 TOKEN_REUSED）
+        - 派生密钥使用 HKDF-SHA256 链式派生，泄露单个 token 不影响其他 token
+
+        限流规则：每 refreshToken 每小时 ≤ 10 次（429 RATE_LIMIT_EXCEEDED）。
       operationId: refreshToken
       security: []
       responses:
@@ -161,7 +224,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '401':
-          description: 刷新令牌无效或已过期
+          description: 刷新令牌无效 / 已过期（TOKEN_EXPIRED / INVALID_TOKEN）/ 重放检测触发（TOKEN_REUSED）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: 请求过于频繁（refreshToken 级别限流触发）
           content:
             application/json:
               schema:
@@ -1127,6 +1196,7 @@ components:
         required:
           - email
           - password
+          - privacyPolicyAccepted
         properties:
           username:
             type: string
@@ -1162,11 +1232,18 @@ components:
             description: 手机号码（可选）
             example: "13800138000"
             x-constraint-description: "11位数字，中国大陆手机号格式"
+          privacyPolicyAccepted:
+            type: boolean
+            enum: [true]
+            description: 是否同意《用户协议》与《隐私政策》；必须为 true，未勾选无法注册
+            example: true
+            x-constraint-description: "必须显式勾选为 true，false / null / 缺失均视为未同意"
         example:
           username: "zhangsan"
           email: "zhangsan@example.com"
           password: "Test@123456"
           phone: "13800138000"
+          privacyPolicyAccepted: true
 
       LoginRequest:
         type: object
@@ -1192,23 +1269,17 @@ components:
 
       LogoutRequest:
         type: object
-        required:
-          - refreshToken
-        properties:
-          refreshToken:
-            type: string
-            minLength: 20
-            description: 刷新令牌
+        description: |
+          登出请求体（可为空）。refreshToken 通过 httpOnly Cookie 自动读取，无需在 body 中传递。
+        properties: {}
+        example: {}
 
       RefreshTokenRequest:
         type: object
-        required:
-          - refreshToken
-        properties:
-          refreshToken:
-            type: string
-            minLength: 20
-            description: 刷新令牌
+        description: |
+          刷新令牌请求体（可为空）。refreshToken 通过 httpOnly Cookie 自动读取，无需在 body 中传递。
+        properties: {}
+        example: {}
 
       CreateFamilyRequest:
         type: object
@@ -1280,6 +1351,8 @@ components:
               - username
               - email
               - familyId
+              - accessToken
+              - expiresIn
             properties:
               userId:
                 type: string
@@ -1305,6 +1378,30 @@ components:
                 format: uuid
                 description: 注册时自动创建的默认家庭ID
                 example: "660f9500-e29b-41d4-a716-446655440001"
+              accessToken:
+                type: string
+                minLength: 20
+                description: |
+                  访问令牌（JWT，HS256 签名）。
+                  注册成功后立即下发，前端可立即置于登录态（避免先注册再登录的二次跳转）；
+                  同时通过 Set-Cookie 下发 refreshToken（httpOnly; Secure; SameSite=Lax; Path=/api/v1/auth; Max-Age=604800）。
+                example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U"
+              expiresIn:
+                type: integer
+                minimum: 0
+                default: 900
+                description: accessToken 过期时间（秒），固定 900（15 分钟）
+                example: 900
+        example:
+          success: true
+          message: "注册成功"
+          data:
+            userId: "550e8400-e29b-41d4-a716-446655440000"
+            username: "zhangsan"
+            email: "zhangsan@example.com"
+            familyId: "660f9500-e29b-41d4-a716-446655440001"
+            accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U"
+            expiresIn: 900
 
       LoginResponse:
         type: object
@@ -1334,14 +1431,14 @@ components:
               accessToken:
                 type: string
                 minLength: 20
-                description: 访问令牌(JWT格式,有效期1小时)
+                description: 访问令牌(JWT格式,有效期15分钟)
                 example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U"
               expiresIn:
                 type: integer
                 minimum: 0
-                default: 3600
-                description: 访问令牌过期时间(秒),默认3600(1小时)
-                example: 3600
+                default: 900
+                description: 访问令牌过期时间(秒),默认900(15分钟)
+                example: 900
               currentFamily:
                 allOf:
                   - $ref: '#/components/schemas/CurrentFamilyInfo'
@@ -1394,9 +1491,9 @@ components:
               expiresIn:
                 type: integer
                 minimum: 0
-                default: 3600
-                description: 访问令牌过期时间(秒),默认3600(1小时)
-                example: 3600
+                default: 900
+                description: 访问令牌过期时间(秒),默认900(15分钟)
+                example: 900
 
       FamilyResponse:
         type: object
@@ -2175,13 +2272,18 @@ components:
                   - MISSING_REQUIRED_FIELD
                   - INVALID_FORMAT
                   - CONSTRAINT_VIOLATION
+                  - WEAK_PASSWORD
+                  - INVALID_PRIVACY_CONSENT
                   - USER_ALREADY_EXISTS
+                  - EMAIL_ALREADY_EXISTS
                   - USER_NOT_FOUND
                   - INVALID_CREDENTIALS
                   - INVALID_TOKEN
                   - TOKEN_EXPIRED
+                  - TOKEN_REUSED
                   - UNAUTHORIZED
                   - FORBIDDEN
+                  - RATE_LIMIT_EXCEEDED
                   - FAMILY_NOT_FOUND
                   - FAMILY_ALREADY_EXISTS
                   - ALREADY_IN_FAMILY
