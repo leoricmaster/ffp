@@ -90,7 +90,7 @@ ft-002-us-001   # ft-002-list 的第 1 个 US
 **规则**:
 
 - `td` 前缀表示 Tech Debt
-- 序号从 001 开始，全局递增，不与 ft / bg 复用
+- 序号从 001 开始，全局递增，不与 ft / de 复用
 - 简述用 kebab-case
 
 **示例**:
@@ -102,24 +102,24 @@ td-010-generator-version    # OpenAPI generator 版本漂移
 
 **承载位置**: GitHub Issues（标签 `type:tech-debt` + `debt:active`）。活跃债务在 Issues 中追踪，已偿还债务关闭后自然归档。
 
-### 4. Bug ID（bg）全局唯一
+### 4. Defect ID（de）全局唯一
 
-**格式**: `bg-{序号}-{简述}`
+**格式**: `de-{序号}-{简述}`
 
 **规则**:
 
-- `bg` 前缀表示 Bug
+- `de` 前缀表示 Defect
 - 序号从 001 开始，全局递增，不与 ft / td 复用
 - 简述用 kebab-case
 
 **示例**:
 
 ```text
-bg-001-login-redirect-loop   # 登录后重定向死循环
-bg-002-pagination-offset     # 列表分页 offset 计算错误
+de-001-login-redirect-loop   # 登录后重定向死循环
+de-002-pagination-offset     # 列表分页 offset 计算错误
 ```
 
-**承载位置**: GitHub Issues 是事实源；代码注释中用 `bg-xxx` 引用。关闭的 Issue 自然归档，不额外维护历史文档。
+**承载位置**: GitHub Issues 是事实源；代码注释中用 `de-xxx` 引用。关闭的 Issue 自然归档，不额外维护历史文档。
 
 ### 5. 统一 ID 注册表
 
@@ -129,7 +129,7 @@ bg-002-pagination-offset     # 列表分页 offset 计算错误
 |------|------|---------------------|
 | `ft` | Feature | 003 |
 | `td` | Tech Debt | 034 |
-| `bg` | Bug | — |
+| `de` | Defect | — |
 
 > 新增任一类型 ID 时，先查表确认序号不冲突，再更新表。
 
@@ -145,7 +145,7 @@ docs/backlog/
 │       └── us-001.md            # US 文件，ID 为 ft-001-us-001
 ```
 
-Tech Debt 和 Bug 不创建独立目录，其生命周期短于 Feature，由 GitHub Issues 承载。
+Tech Debt 和 Defect 不创建独立目录，其生命周期短于 Feature，由 GitHub Issues 承载。
 
 ## 后果
 
@@ -162,4 +162,4 @@ Tech Debt 和 Bug 不创建独立目录，其生命周期短于 Feature，由 Gi
 
 ## 维护
 
-此 ADR 由 Knowledge Keeper 维护，更新时需通知相关开发者。新增 `td` / `bg` 编号时同步更新注册表。
+此 ADR 由 Knowledge Keeper 维护，更新时需通知相关开发者。新增 `td` / `de` 编号时同步更新注册表。

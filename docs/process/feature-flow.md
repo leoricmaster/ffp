@@ -85,8 +85,8 @@ sequenceDiagram
   alt 用户验收通过
     U-->>O: PR approve
     O->>O: 更新 state.md → Done
-    O->>T: 合并到 main
-    T->>T: 合并 + main CI 全绿
+    O->>T: 唤起 Tester 收尾仪式
+    T->>T: test-registry 更新 / knowledge-summary / 流程回顾
   else 验收驳回
     O->>D: 反馈问题
     D->>D: 修复 → 重新提测

@@ -1,12 +1,6 @@
 ---
 name: feature-design
-agent: Designer
-triggers:
-  - 起草 feature.md 时
-  - 起草 design.md 时
-  - 变更 API 契约时
 description: feature.md 与 design.md 编写规范——模板、US 拆分原则、API 契约变更流程。
-depends_on: [adr-writing]
 ---
 
 # Feature Design Skill
@@ -29,11 +23,28 @@ Frontmatter 必填：`type/id/epic/title/priority/owner/created`，禁止 `statu
 ### US-001 <标题>
 **As** <角色>, **I want** <意图>, **so that** <价值>
 **AC**:
-- [ ] AC1 #ft-XXX 📅 YYYY-MM-DD
-## 设计概要（> 150 行拆 design.md）
-## 关联 Flow（无则 —）
-## 架构依赖 & 与现有功能关系
+- [ ] AC1  （YYYY-MM-DD）
+## 设计概要（拆 design.md 条件见下）
+## 关联 Scenario（无则 —）
+## 与现有功能的关系
 ## Storybook 声明（has_storybook: yes/no）
+
+- **yes**：本 feature 引入新可复用组件（非纯页面拼装）。必须列出预期 stories 清单，供 Reviewer 代码评审时核对：
+  ```markdown
+  ## Storybook 声明
+  has_storybook: yes
+  stories:
+    - Default       # 初始空状态
+    - WithValue     # 填充数据
+    - Loading       # 加载/提交中
+    - WithErrors    # 验证错误
+    - Empty         # 空数据状态（列表/表格组件）
+  ```
+
+- **no**：仅复用已有组件或纯页面拼装
+
+## 需求变更记录（设计审批通过后追加）
+
 ```
 
 ## US 拆分原则
@@ -55,7 +66,13 @@ Frontmatter 必填：`type/id/epic/title/priority/owner/created`，禁止 `statu
 
 ## design.md 结构
 
-设计段 > 150 行时从 feature.md 拆分：
+设计段涉及以下任一情况时，从 feature.md 拆分到 design.md：
+
+- 涉及 ≥2 个 API 端点的新增/修改/删除
+- 涉及数据模型变更（新表 / 改字段 / 改关系）
+- 涉及 ≥3 个组件/页面的交互设计
+- 涉及状态机、权限规则、并发/事务等复杂逻辑
+- 需要 mermaid 序列图才能讲清关键交互
 
 ```markdown
 # <Feature> 设计详设
@@ -65,15 +82,15 @@ Frontmatter 必填：`type/id/epic/title/priority/owner/created`，禁止 `statu
 ## 数据模型变更
 ## 关键交互（mermaid 序列图）
 ## 错误处理 & 边界场景
-## Flow 影响（如有）
+## Scenario 影响（如有）
 ```
 
 ## API 契约变更流程
 
-1. 先更新 `docs/architecture/api/openapi.yaml`
+1. 先更新 `docs/api/openapi.yaml`
 2. 评估向后兼容性：
-   - 新增可选字段 / 新增枚举值
-   - 新增必填 / 删字段 / 改类型 / 删枚举值（必须触发架构审批 Gate）
+   - ✅ 向后兼容（无需审批）：新增可选字段、新增枚举值
+   - ⚠️ 非兼容变更（必须触发架构审批 Gate）：新增必填字段、删除字段、修改字段类型、删除枚举值
 3. Plan 里附 Swagger UI 链接
 
 ## 架构审批触发信号

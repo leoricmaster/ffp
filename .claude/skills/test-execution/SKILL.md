@@ -1,19 +1,11 @@
 ---
 name: test-execution
-agent: Tester
-triggers:
-  - 进入 Testing 阶段时
-  - 执行 P0 门禁时
-  - 编写 test-report.md 时
-  - P0 失败后回归验证时
 description: Tester 测试执行阶段的标准操作流程与模板——执行顺序、优先级规则、状态定义、test-report.md 编写规范、P0 失败处理流程、state.md 更新规则。
-depends_on: [test-design-rubric]
-human_doc: docs/architecture/quality-pipeline.md#test-layering
 ---
 
 # Test Execution
 
-Tester 在 `Testing` 阶段执行测试的标准操作流程。
+Tester 在 `Testing` 阶段执行测试的标准操作流程。设计用例阶段见 `.claude/skills/test-design-rubric/SKILL.md`。
 
 ## 目录
 
@@ -51,10 +43,10 @@ Acceptance → Integration（顺序执行）
 | 动作 | 时机 | 责任人 |
 |------|------|--------|
 | 新增 smoke 标记 | Feature 开发中，核心路径用例产出时 | Tester |
-| 审查 smoke 用例集 | 每 5 个 Feature Done 后 | Tester |
+| 审查 smoke 用例集 | 每次迭代结束时（或发现冗余/遗漏时） | Tester |
 | 注册表变更审批 | 每次变更 | Reviewer（PR 中确认） |
 
-**注册表位置**：`docs/architecture/test-registry.md` —— 维护 smoke 用例清单（用例名 + 覆盖路径 + 归属 Feature）。
+**注册表位置**：`docs/quality/test-registry.md` —— 维护 smoke 用例清单（用例名 + 覆盖路径 + 归属 Feature）。
 
 ---
 
@@ -79,8 +71,6 @@ Acceptance → Integration（顺序执行）
 | FAILED | 跑了但断言失败 | 否 |
 | BLOCKED | 依赖未就绪 | 否 |
 | SKIP | 明确不跑 | 否 |
-
-**BLOCKED ≠ PASS**。
 
 ---
 
@@ -140,7 +130,7 @@ tester: Agent
 
 - 修完后**重新跑一遍** P0，不是只看 diff
 - 更新 test-report.md 的"回归测试记录"段
-- 更新 state.md：`Testing → Implementing → Testing`，history 追加 regression
+- `.last-action-summary.md` 标记 `suggested_state: "Implementing"`，由 Orchestrator 回退状态并唤起 Developer
 
 ---
 
