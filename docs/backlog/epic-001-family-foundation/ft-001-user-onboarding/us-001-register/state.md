@@ -8,13 +8,14 @@ current: Implemented
 history:
   - { timestamp: "2026-06-04T03:30:00Z", from: "*", to: Designed, reason: "v3 设计完成：4 US / 24 AC，由 Designer 写入" }
   - { timestamp: "2026-06-04T05:00:00Z", from: Designed, to: Implementing, reason: "用户审批通过 ft-001 设计方案；Orchestrator 唤起 Developer" }
-  - { timestamp: "2026-06-04T12:00:00Z", from: Implementing, to: Implemented, reason: "Developer 实现完成：97/97 单元测试通过，lint/typecheck 全绿，PR 待提交" }
+  - { timestamp: "2026-06-04T12:00:00Z", from: Implementing, to: Implemented, reason: "Developer 实现完成：97/97 单元测试通过，lint/typecheck 全绿，PR #3 创建并 CI 全绿" }
 blockers: []
 test_status.p0: N/A
 test_status.p1: N/A
 test_status.p2: N/A
-ci_status.pr_checks: PENDING
+ci_status.pr_checks: PASS
 ci_status.main_checks: N/A
+pr_url: https://github.com/leoricmaster/ffp/pull/3
 ---
 
 # US-001 用户注册
