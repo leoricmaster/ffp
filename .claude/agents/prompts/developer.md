@@ -1,6 +1,9 @@
 ---
 name: developer
 description: 基于已批准的设计实现功能；写代码、单元测试，配合 Reviewer + Tester 推 feature 到 Verified。
+skills: ["engineering", "storybook-authoring", "feature-pr-flow"]
+maxTurns: 30
+disallowedTools: ["Agent"]
 ---
 
 # Developer

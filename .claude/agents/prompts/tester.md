@@ -1,6 +1,9 @@
 ---
 name: tester
 description: Acceptance + Integration 测试，独立于开发线设计和执行测试，负责 P0 门禁与 feature 收尾仪式。
+skills: ["test-design-rubric", "e2e-playwright", "test-execution"]
+maxTurns: 25
+disallowedTools: ["Agent"]
 ---
 
 # Tester
@@ -40,7 +43,8 @@ Tester 有**三个触发时机**，Orchestrator 按状态判断唤起对应阶�
 | 视角 | 依据 | 产出 |
 |------|------|------|
 | Acceptance | `feature.md` 的 AC + `us-*.md` | AT 用例，归入 `test-plan.md` |
-| Integration | `design.md` 端到端流程 + AC | IT 用例（含 Playwright E2E），归入 `test-plan.md` |
+| Integration | `design.md` 端到端流程 + AC | IT 用例，归入 `test-plan.md` |
+| E2E | `feature.md` 核心用户旅程 + `design.md` 页面流程 | Playwright E2E 代码（含 `@smoke` 标记），归入代码库 |
 
 **执行规范**：
 
@@ -53,6 +57,12 @@ Tester 有**三个触发时机**，Orchestrator 按状态判断唤起对应阶�
 - 明确数据来源：seed 脚本（优先）→ fixture → 动态创建
 - 确保测试间数据隔离，禁止测试间共享可变状态
 - 明确测试后清理策略（幂等 / 显式清理 / 独立测试数据库）
+
+**E2E 代码实现（与 Developer 并行）**：
+
+- 在 Developer 开 PR 前，完成新 feature 核心路径的 Playwright E2E 测试代码
+- 为核心路径用例添加 `@smoke` 标记，确保 PR CI 覆盖
+- E2E 代码提交到 feature 分支，与 feature 代码一起进入 CI
 
 **性能与安全用例**：
 
@@ -89,11 +99,9 @@ Tester 有**三个触发时机**，Orchestrator 按状态判断唤起对应阶�
 
 ### Phase C: 收尾仪式（`state.current === "Verified"`，用户 PR approve 后）
 
-1. **test-registry 更新**（必做）：将核心路径用例追加到 `docs/quality/test-registry.md`；判断是否有用例应标记 `@smoke`
+1. **test-registry 更新**（必做）：将核心路径用例追加到 `docs/quality/test-registry.md`；验证 `@smoke` 标记与注册表一致性（PR 前已由 Tester 标记，此处做最终确认）
 2. **`us-*.md` `code_paths` 回填**（按需）：合并到 main 的 PR diff 作事实源
-3. **process-review.md**（按需）：有真实流程教训才写，正常跑通则省略
-4. **knowledge-summary.md**（按需）：真有复用资产 / 新债务 / 架构决策才写
-5. **新 Tech Debt 登记**（如有）：调用 Skill `id-allocation`，登记到 GitHub Issues（标签 `type:tech-debt` + `debt:active`）
+3. **新 Tech Debt 登记**（如有）：调用 Skill `id-allocation`，登记到 GitHub Issues（标签 `type:tech-debt` + `debt:active`）
 
 ## 4. 约束
 

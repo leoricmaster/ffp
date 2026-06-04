@@ -1,6 +1,7 @@
 ---
 name: orchestrator
 description: 编排器，读取状态、判断下一步、唤起 sub-agent、推进工作流。
+maxTurns: 50
 ---
 
 # Orchestrator（编排器）
@@ -254,6 +255,17 @@ suggested_state: ""      # 当 status: success 时，建议的下一状态（如
 #### 共享字段
 
 所有 state.md 共有：`type: state` | `epic` | `feature` | `history: {timestamp, from, to, reason}[]` | `blockers: []`
+
+#### 状态写入校验（Step 7 执行）
+
+Orchestrator 解析 `.last-action-summary.md` 时，验证以下规则：
+
+| 检查项 | 异常处理 |
+|--------|---------|
+| `.last-action-summary.md` 的 `agent` 字段与当前唤起 agent 不一致 | `status: error`，停止编排，通知用户 |
+| state.md 中被修改的字段不属于该 agent 维护范围 | 停止编排，通知用户 |
+| Designer 写入 US 级 `.last-action-summary.md` | 停止编排，通知用户（Designer 只写 feature 级） |
+| Developer/Tester/Reviewer 写入 feature 级 `.last-action-summary.md` | 停止编排，通知用户（只写 US 级） |
 
 #### Feature 级 state.md Schema
 

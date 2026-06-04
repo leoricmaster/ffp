@@ -37,6 +37,8 @@ git checkout -b feature/ft-004-<slug>
 
 # 3. 开发 + 提交
 # ... edits ...
+# 检查：Tester 的 E2E 代码已提交到本分支（如有新 feature 核心路径）
+# git log --oneline --grep="test(e2e)" 或确认 e2e/ 目录有变更
 git add <specific files>     # 不用 git add -A，避免误提交敏感文件
 git commit -m "feat(<scope>): <subject>
 
