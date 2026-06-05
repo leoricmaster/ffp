@@ -1,10 +1,33 @@
-# Feature 开发全流程
+# Feature 开发流程
 
-## 协作模型
+## 通信模型
 
-参与者：用户、Orchestrator、Designer、Developer、Tester、Reviewer。
+所有 sub-agent 间不直接通信，通过 **Orchestrator 中转** 与 **共享文件** 传递信息。
 
-**原则**：Gate 最小化（阻塞点），80% 工作由子 Agent 自主完成，Gate 处为二元决策。
+**共享文件**：
+
+| 文件 | 用途 |
+|------|------|
+| `.last-action-summary.md` | sub-agent 完成信号与结果汇报 |
+| `state.md` | 状态流转与阻塞记录 |
+| `feature.md` / `design.md` | 设计文档 |
+| `test-plan.md` / `test-report.md` | 测试用例与结果 |
+| GitHub PR / Issue | 代码评审与缺陷报告 |
+
+**共享文件读写规则**：
+
+| 文件 / 字段 | 写入者 | 读取者 |
+|------------|--------|--------|
+| `state.md` `current` | Orchestrator | 所有 sub-agent |
+| `state.md` `history` | Designer / Developer / Tester | Orchestrator |
+| `state.md` `blockers` | Designer / Developer / Tester | Orchestrator |
+| `state.md` `test_status.*` | Tester | Orchestrator |
+| `state.md` `ci_status.pr_checks` | Developer | Orchestrator / Tester |
+| `state.md` `ci_status.main_checks` | Tester | Orchestrator |
+| `.last-action-summary.md` (feature 级) | Designer | Orchestrator |
+| `.last-action-summary.md` (US 级) | Developer / Tester / Reviewer | Orchestrator |
+| `feature.md` / `design.md` | Designer | Developer / Tester / Reviewer |
+| `test-plan.md` / `test-report.md` | Tester | Orchestrator / Developer |
 
 ## 协作时序
 
@@ -18,75 +41,51 @@ sequenceDiagram
   participant T as Tester
   participant R as Reviewer
 
-  U->>O: 描述需求 / 推进 ft-XXX
+  U->>O: 推进 ft-XXX
   O->>DS: 唤起 Designer
-  DS->>DS: 需求澄清 + 探索代码库
-  DS->>DS: 编写 feature.md + design.md
-  DS->>R: 提交评审
-  R-->>DS: Approved / Changes Requested
-
-  alt 循环至 Approved
-    DS->>R: 重新评审
+  DS->>DS: 功能设计 [feature-design]
+  opt 命中交互设计触发条件
+    DS->>DS: 交互设计 [storybook-authoring]
   end
+  DS->>R: 提交设计评审 [design-review]
+  R-->>DS: 评审结果
 
   DS-->>O: 设计完成
-  O->>U: 提交设计方案审批 [Gate]
+  O->>U: 设计方案审批 [Gate]
+  opt 命中交互设计触发条件
+    U->>U: 交互原型评审（浏览器操作 Storybook）
+  end
   alt 通过
     U-->>O: approve
-    O->>O: 更新 state.md → Designed
+    O->>O: 更新 state → Designed
   else 驳回
-    O->>DS: 反馈修改意见
+    O->>DS: 反馈修改
   end
 
-  O->>O: 扫描 us-*/state.md
-  par Tester 设计用例
+  O->>O: 选择可推进的 US
+  par 测试设计阶段
     O->>T: 唤起 Tester
-    T->>T: 编写 test-plan.md（P0/P1/P2）
-    T->>D: 提交 P0 用例
-  and Developer 编码
+    T->>T: 测试设计 [test-design-rubric]
+  and 开发阶段
     O->>D: 唤起 Developer
-    D->>D: 实现代码 + 单元测试
-    D->>D: PR 开启 + PR CI 全绿
+    D->>D: 编码实现 [engineering]
+    D->>D: PR 流程 [feature-pr-flow]
   end
 
-  alt 设计偏差
-    D->>R: 提交设计变更申请
-    alt 小修
-      R-->>D: 批准，更新 design.md 版本号
-    else 大修（架构信号）
-      R-->>O: 提交审批请求
-      O->>U: 提交审批请求
-      U-->>O: 批准
-    end
-  end
+  D->>R: 请求代码评审 [code-review]
+  R-->>D: 评审结果
 
-  D->>R: 请求代码评审
-  R-->>D: Approved / Changes Requested
+  D-->>O: 开发完成
+  O->>T: 触发测试执行 [test-execution]
+  T->>T: P0 门禁
+  T-->>O: P0 通过
+  O->>U: 提交验收 [Gate]
+  O->>T: 继续 P1/P2
 
-  alt 不通过
-    D->>D: 修复 → 重新评审
-  end
-
-  D-->>O: 通知测试执行
-  O->>T: 通知测试执行
-  T->>T: 执行 P0 门禁
-
-  alt P0 失败
-    T->>D: 提交缺陷报告
-    D->>D: 修复 → 重新评审 → 重新提测
-  end
-
-  T-->>O: P0 门禁通过
-  O->>U: 提交 PR 验收请求 [Gate]
-  O->>T: 继续执行 P1/P2
-
-  T->>T: 更新 test-report.md（含 P0+P1+P2）
-
-  alt 用户验收通过
-    U-->>O: PR approve
-    O->>O: 更新 state.md → Done
-    O->>T: 唤起 Tester 收尾仪式
-    T->>T: test-registry 更新 / knowledge-summary / 流程回顾
+  alt 验收通过
+    U-->>O: approve
+    O->>O: 更新 state → Done
+    O->>T: 收尾仪式
   else 验收驳回
     O->>D: 反馈问题
     D->>D: 修复 → 重新提测
@@ -95,14 +94,12 @@ sequenceDiagram
 
 ## 状态模型
 
-采用两级状态模型：feature 级（设计阶段）+ US 级（交付阶段）。
-
 ### Feature 级状态机
 
 ```mermaid
 stateDiagram-v2
   [*] --> Draft : 创建 Feature
-  Draft --> Designed : 设计方案审批通过（用户 Gate）
+  Draft --> Designed : 设计方案审批通过
   Designed --> [*] : US 子目录创建完成
 ```
 
@@ -110,33 +107,15 @@ stateDiagram-v2
 
 ```mermaid
 stateDiagram-v2
-  [*] --> Designed : feature 设计完成，US 就绪
+  [*] --> Designed : feature 设计完成
   Designed --> Implementing : Developer 开始编码
-  Implementing --> Testing : PR 开启 + PR CI 全绿
-  Testing --> Verified : P0 全绿 + PR review 通过
-  Verified --> Done : PR approve + main CI 全绿（用户 Gate）
+  Implementing --> Testing : PR 开启 + CI 全绿
+  Testing --> Verified : P0 全绿 + Code Review 通过
+  Verified --> Done : PR approve + main CI 全绿
 
   Testing --> Implementing : P0 失败 / Code Review 不通过
-  Verified --> Implementing : 用户验收驳回 / P1/P2 发现严重问题
-  Implementing --> Designed : 设计修正（大修）
-  Designed --> Implementing : 修正后继续编码
+  Verified --> Implementing : 验收驳回
 ```
-
-**状态语义**：
-
-| 状态 | 含义 | 进入条件 | 离开条件 |
-|------|------|----------|---------|
-| `Designed` | US 设计就绪，等待实现 | feature 设计完成，US 子目录创建 | Developer 开始编码 |
-| `Implementing` | US 开发中 | Developer 开始写代码 | PR CI 全绿 |
-| `Testing` | 代码完成，测试执行中 | PR CI 全绿 | P0 全过 + Reviewer 通过 |
-| `Verified` | P0 全绿 + PR review 通过 | P0 全过 + Reviewer 通过 | PR approve + main CI 全绿 |
-| `Done` | 用户验收通过 | main CI 全绿 | — |
-
-**设计修正规则**（`Implementing → Designed → Implementing`）：
-
-- **小修**（字段增减、接口参数调整）：Reviewer 直接批准，更新 `design.md` 版本号
-- **大修**（系统边界、数据模型、外部依赖）：转设计方案审批 Gate
-- **修正上限**：同一 feature 累计 ≥ 3 次大修，停止推进，escalate 给用户
 
 **Feature 完成条件**：所有 US 均达到 `Done`。
 
@@ -144,11 +123,27 @@ stateDiagram-v2
 
 | Gate | 触发时机 | 通过条件 |
 |------|---------|---------|
-| **设计方案审批** | Designer 提交 feature.md + design.md | 用户 approve |
-| **验收通过** | P0 全绿 + PR review 通过 + PR CI 全绿 | PR approve |
+| 设计方案审批 | Designer 提交设计产出 | 用户 approve |
+| 用户验收 | P0 全绿 + Code Review 通过 + CI 全绿 | PR approve |
 
 **架构信号**（设计方案审批时一并审查）：OpenAPI 变更、data-model 变更、CI/CD 变更、新增外部依赖、跨越系统边界。
 
+**交互信号**（条件触发）：新增页面、引入新可复用组件、复杂交互（拖拽、复合表单等）时，Designer 阶段产出 Storybook 原型，用户在设计方案审批 Gate 之前完成交互原型评审。
+
+## 阶段-Skill 映射
+
+| 时序图阶段 | 执行 Agent | Skill | 关键产出 | Gate |
+|-----------|-----------|-------|---------|------|
+| 功能设计 | Designer | `feature-design` | feature.md, design.md | — |
+| 交互设计 | Designer | `storybook-authoring` | Storybook 原型, data-testid 清单, 交互约束 | 条件触发 |
+| 设计评审 | Reviewer | `design-review` | 架构评审意见 | — |
+| 测试设计阶段 | Tester | `test-design-rubric` | test-plan.md, E2E 代码 (*.spec.ts) | — |
+| 开发阶段 | Developer | `engineering` | 代码 + 单元测试 | — |
+| PR 流程 | Developer | `feature-pr-flow` | PR | — |
+| 代码评审 | Reviewer | `code-review` | 评审意见 | — |
+| 测试执行 | Tester | `test-execution` | test-report.md | P0 门禁 |
+| 收尾仪式 | Tester | — | test-registry 更新 | 用户验收 |
+
 ## 编排规则
 
-用户说「推进 ft-XXX」时，Orchestrator 读取 feature/state.md，若为 `Designed` 则扫描所有 us-*/state.md，按优先级（`Designed → Implementing → Testing → Verified → Done`）选择可推进的 US 并唤起对应 Agent。完整执行表与异常处理规则见 [orchestrator.md](../../.claude/agents/prompts/orchestrator.md)。
+用户说「推进 ft-XXX」时，Orchestrator 读取 feature/state.md，若为 `Designed` 则扫描所有 us-*/state.md，按优先级选择可推进的 US 并唤起对应 Agent。完整执行规则见 `.claude/agents/prompts/orchestrator.md`。

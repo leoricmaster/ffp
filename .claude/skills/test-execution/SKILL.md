@@ -42,7 +42,7 @@ Acceptance → Integration（顺序执行）
 
 | 动作 | 时机 | 责任人 |
 |------|------|--------|
-| 新增 smoke 标记 | Feature 开发中，核心路径用例产出时 | Tester |
+| 新增 smoke 标记 | PR 之前，Tester 提交 E2E 代码时 | Tester |
 | 审查 smoke 用例集 | 每次迭代结束时（或发现冗余/遗漏时） | Tester |
 | 注册表变更审批 | 每次变更 | Reviewer（PR 中确认） |
 

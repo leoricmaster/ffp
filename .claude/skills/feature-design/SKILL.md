@@ -103,6 +103,22 @@ design.md 涉及以下修改时触发架构审批 Gate：
 - 新增外部依赖
 - 跨越已有系统边界
 
+## Scenario 影响分级
+
+> 变更分级速查：T1 = 语法/表述修正（无需审批）；T2 = scenario 步骤/流程调整，契约和 Actor 不变（需标记影响）；T3 = 契约变更、Actor 变更、架构级变更（需更新下游文档并触发架构审批）。
+
+| 级别 | 定义 | 处理 |
+|------|------|------|
+| **T2** | 步骤/流程调整，契约/Actor 不变 | 在 feature.md 中标记影响范围 |
+| **T3** | 契约/Actor/架构变更 | 触发架构审批 Gate，在 design.md 中输出「下游更新清单」，由 Developer 实现阶段执行 |
+
+## scenario vs `uc-*.md` 拆分规则
+
+| 场景 | 产物 | 位置 |
+|------|------|------|
+| ≥2 个 Feature 协作 + 跨 Epic/Theme | scenario | `docs/architecture/scenarios/` |
+| 单 Feature 内分支/失败路径 | `uc-*.md` | `docs/backlog/{epic}/{feature}/` |
+
 ## ft 完整性原则（核心约束）
 
 **每个 ft 应做到"设计-实现-契约三一致"，不在 ft 内部留下"已知不一致"的尾巴。**
